@@ -52,9 +52,19 @@ jobs:
             --concurrency-per-lambda=1 \
             --timeout=240000 \
             --function-name=remotion-render-4-0-477-mem3008mb-disk2048mb-240sec \
-            --out out/${GENRE}_silent.mp4 \
-            --download-behavior=download
-          echo "Checking video file:"
+            2>&1 | tee /tmp/render_output.txt
+          echo "--- Render output saved ---"
+          S3_URL=$(grep "+ S3" /tmp/render_output.txt | awk '{print $3}')
+          echo "S3 URL found: $S3_URL"
+          python3 -c "
+          import urllib.request, sys
+          url = '$S3_URL'
+          out = 'out/${GENRE}_silent.mp4'
+          print(f'Downloading from {url}')
+          urllib.request.urlretrieve(url, out)
+          print(f'Downloaded successfully')
+          "
+          echo "Video file size:"
           ls -lh out/${GENRE}_silent.mp4
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
