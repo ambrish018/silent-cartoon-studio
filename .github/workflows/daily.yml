@@ -45,7 +45,7 @@ jobs:
         run: |
           mkdir -p out
           GENRE_CAP="$(echo ${GENRE:0:1} | tr '[:lower:]' '[:upper:]')${GENRE:1}"
-          BEAT_SHEET=$(cat jobs/latest.json)
+          BEAT_SHEET=$(cat $(cat jobs/latest.txt))
           npx remotion lambda render \
             ${{ secrets.REMOTION_SERVE_URL }} \
             "$GENRE_CAP" \
