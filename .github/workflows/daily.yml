@@ -47,9 +47,10 @@ jobs:
 
       - name: Step 2 - Render animation
         run: |
+          GENRE_CAP="$(echo ${GENRE:0:1} | tr '[:lower:]' '[:upper:]')${GENRE:1}"
           npx remotion lambda render \
             ${{ secrets.REMOTION_SERVE_URL }} \
-            "$GENRE" \
+            "$GENRE_CAP" \
             --out out/${GENRE}_silent.mp4
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
