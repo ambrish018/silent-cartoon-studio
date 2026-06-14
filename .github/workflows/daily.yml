@@ -1,0 +1,87 @@
+name: daily-cartoon
+
+on:
+  schedule:
+    - cron: "0 4 * * *"   # Every day at 4:00 AM UTC = 9:30 AM IST
+  workflow_dispatch: {}    # Adds a manual "Run workflow" button
+
+jobs:
+  make-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out project files
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Node packages
+        run: npm ci
+
+      - name: Install Python packages
+        run: |
+          pip install anthropic boto3 \
+                      google-api-python-client \
+                      google-auth-httplib2 \
+                      google-auth-oauthlib
+
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Pick today's genre
+        run: echo "GENRE=$(python3 scripts/pick_genre.py)" >> $GITHUB_ENV
+
+      - name: Step 1 — Generate story
+        run: python3 scripts/gen_beatsheet.py "$GENRE"
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Step 2 — Render animation on Remotion Lambda
+        run: |
+          npx remotion lambda render \
+            ${{ secrets.REMOTION_SERVE_URL }} \
+            "$GENRE" \
+            --out out/${{ env.GENRE }}_silent.mp4
+        env:
+          AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION:    us-east-1
+
+      - name: Step 3 — Generate music
+        run: python3 scripts/gen_music.py "$GENRE"
+        env:
+          FAL_KEY: ${{ secrets.FAL_KEY }}
+
+      - name: Step 4 — Mix video + music + SFX
+        run: python3 scripts/finish.py "$GENRE"
+
+      - name: Step 5 — Generate YouTube metadata
+        run: python3 scripts/gen_meta.py "$GENRE"
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Step 6 — Upload to Cloudflare R2
+        run: python3 scripts/upload_r2.py "$GENRE"
+        env:
+          R2_ACCESS_KEY_ID:     ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME:       ${{ secrets.R2_BUCKET_NAME }}
+          R2_ACCOUNT_ID:        ${{ secrets.R2_ACCOUNT_ID }}
+          R2_PUBLIC_URL:        ${{ secrets.R2_PUBLIC_URL }}
+
+      - name: Step 7 — Publish to YouTube
+        run: python3 scripts/publish_youtube.py "$GENRE"
+        env:
+          YOUTUBE_CLIENT_ID:     ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
