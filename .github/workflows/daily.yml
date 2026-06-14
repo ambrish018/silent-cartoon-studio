@@ -45,18 +45,16 @@ jobs:
         run: |
           mkdir -p out
           GENRE_CAP="$(echo ${GENRE:0:1} | tr '[:lower:]' '[:upper:]')${GENRE:1}"
-          S3_URL=$(npx remotion lambda render \
+          npx remotion lambda render \
             ${{ secrets.REMOTION_SERVE_URL }} \
             "$GENRE_CAP" \
             --frames-per-lambda=600 \
             --concurrency-per-lambda=1 \
             --timeout=240000 \
             --function-name=remotion-render-4-0-477-mem3008mb-disk2048mb-240sec \
-            2>&1 | grep "+ S3" | awk '{print $3}')
-          echo "S3 URL: $S3_URL"
-          echo "Downloading video from S3..."
-          aws s3 cp "$S3_URL" out/${GENRE}_silent.mp4
-          echo "Video file size:"
+            --out out/${GENRE}_silent.mp4 \
+            --download-behavior=download
+          echo "Checking video file:"
           ls -lh out/${GENRE}_silent.mp4
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
