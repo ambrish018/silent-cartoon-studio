@@ -30,8 +30,8 @@ jobs:
       - name: Install Python packages
         run: pip install anthropic boto3 google-api-python-client google-auth-httplib2 google-auth-oauthlib
 
-      - name: Install ffmpeg and AWS CLI
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg awscli
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
       - name: Pick today's genre
         run: echo "GENRE=$(python3 scripts/pick_genre.py)" >> $GITHUB_ENV
