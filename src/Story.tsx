@@ -1,5 +1,12 @@
 import React from "react";
-import { AbsoluteFill, Sequence, useCurrentFrame, useVideoConfig, interpolate } from "remotion";
+import {
+  AbsoluteFill,
+  Sequence,
+  useCurrentFrame,
+  useVideoConfig,
+  interpolate,
+  spring,
+} from "remotion";
 import { Character, Pose, Facing } from "./characters/Character";
 import { CharName, Expression } from "./characters/art";
 import { Background, Theme } from "./components/Background";
@@ -37,28 +44,40 @@ const Scene: React.FC<{ beat: Beat }> = ({ beat }) => {
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
 
-  let transform = "none";
+  let sceneTransform = "none";
   if (beat.camera === "push_in") {
-    const s = interpolate(frame, [0, durationInFrames], [1, 1.12], { extrapolateRight: "clamp" });
-    transform = `scale(${s})`;
+    const scale = interpolate(
+      frame,
+      [0, durationInFrames],
+      [1, 1.12],
+      { extrapolateRight: "clamp" }
+    );
+    sceneTransform = `scale(${scale})`;
   } else if (beat.camera === "shake") {
-    transform = `translate(${Math.sin(frame * 1.7) * 6}px, ${Math.cos(frame * 2.1) * 6}px)`;
+    const shakeX = Math.sin(frame * 1.7) * 8;
+    const shakeY = Math.cos(frame * 2.3) * 8;
+    sceneTransform = `translate(${shakeX}px, ${shakeY}px)`;
   }
 
   const n = beat.characters.length;
-  const width = n <= 1 ? 460 : n === 2 ? 380 : n === 3 ? 300 : 240;
+  const charWidth = n <= 1 ? 460 : n === 2 ? 380 : n === 3 ? 300 : 240;
 
   return (
     <AbsoluteFill>
       <Background theme={beat.background} />
-      <AbsoluteFill style={{ transform, transformOrigin: "center center" }}>
+      <AbsoluteFill
+        style={{
+          transform: sceneTransform,
+          transformOrigin: "center center",
+        }}
+      >
         <AbsoluteFill
           style={{
             flexDirection: "row",
             alignItems: "flex-end",
             justifyContent: "center",
             gap: 40,
-            paddingBottom: 360,
+            paddingBottom: 320,
           }}
         >
           {beat.characters.map((c, i) => (
@@ -68,11 +87,13 @@ const Scene: React.FC<{ beat: Beat }> = ({ beat }) => {
               expression={c.expression}
               pose={c.pose ?? "idle"}
               facing={c.facing ?? "right"}
-              width={width}
+              width={charWidth}
             />
           ))}
         </AbsoluteFill>
-        {beat.caption_symbol ? <Caption symbol={beat.caption_symbol} /> : null}
+        {beat.caption_symbol ? (
+          <Caption symbol={beat.caption_symbol} />
+        ) : null}
       </AbsoluteFill>
     </AbsoluteFill>
   );
@@ -85,7 +106,7 @@ export const Story: React.FC<{ beatSheet: BeatSheet }> = ({ beatSheet }) => {
         const from = Math.round(beat.start * FPS);
         const dur = Math.round((beat.end - beat.start) * FPS);
         return (
-          <Sequence key={i} from={from} durationInFrames={dur}>
+          <Sequence key={i} from={from} durationInFrames={Math.max(dur, 1)}>
             <Scene beat={beat} />
           </Sequence>
         );
