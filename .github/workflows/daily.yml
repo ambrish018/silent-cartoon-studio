@@ -54,7 +54,7 @@ jobs:
             --out out/${GENRE}_silent.mp4 \
             --frames-per-lambda=600 \
             --concurrency-per-lambda=1 \
-            --timeout=240 \
+            --timeout=240000 \
             --function-name=remotion-render-4-0-477-mem3008mb-disk2048mb-240sec
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
