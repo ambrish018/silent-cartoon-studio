@@ -25,7 +25,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install Node packages
-        run: npm install
+        run: npm install && npm install @remotion/lambda@4.0.477
 
       - name: Install Python packages
         run: |
