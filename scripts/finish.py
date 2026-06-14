@@ -13,7 +13,7 @@ video = f"out/{GENRE}_silent.mp4"
 music = f"out/{GENRE}_music.wav"
 out   = f"out/{GENRE}_final.mp4"
 os.makedirs("out", exist_ok=True)
-
+if not os.path.exists(video): raise FileNotFoundError(f"Silent video not found: {video}. Check Step 2 completed successfully.")
 inputs   = ["-i", video]
 filt     = []
 mix_lbs  = []
@@ -33,7 +33,7 @@ for beat in sheet.get("beats", []):
     name = beat.get("sfx")
     if not name:
         continue
-    sfx_path = f"assets/sfx/{name}.wav"
+    sfx_path = f"assets/sfx/{name}.mp3" if not os.path.exists(f"assets/sfx/{name}.wav") else f"assets/sfx/{name}.wav"
     if not os.path.exists(sfx_path):
         print(f"Warning: SFX not found: {sfx_path}, skipping")
         continue
