@@ -54,17 +54,22 @@ jobs:
             --timeout=240000 \
             --function-name=remotion-render-4-0-477-mem3008mb-disk2048mb-240sec \
             --props="{\"beatSheet\": $BEAT_SHEET}" \
-            --log=verbose \
             2>&1 | cat | tee /tmp/render_output.txt
-          echo "--- Extracting S3 URL ---"
-          S3_URL=$(cat /tmp/render_output.txt | sed 's/\x1b\[[0-9;]*m//g' | grep "S3" | grep "https://" | awk '{print $NF}' | head -1)
+          echo "=== Extracting S3 URL ==="
+          S3_URL=$(cat /tmp/render_output.txt \
+            | sed 's/\x1b\[[0-9;]*m//g' \
+            | grep -o 'https://s3[^ ]*\.mp4' \
+            | head -1)
           echo "S3 URL: [$S3_URL]"
+          if [ -z "$S3_URL" ]; then
+            echo "ERROR: Could not find S3 URL in render output"
+            echo "=== Full output for debugging ==="
+            cat /tmp/render_output.txt
+            exit 1
+          fi
           python3 -c "
           import urllib.request, sys
           url = sys.argv[1].strip()
-          if not url.startswith('http'):
-              print('ERROR: Invalid URL:', repr(url))
-              sys.exit(1)
           out = 'out/${GENRE}_silent.mp4'
           print(f'Downloading from {url}')
           urllib.request.urlretrieve(url, out)
