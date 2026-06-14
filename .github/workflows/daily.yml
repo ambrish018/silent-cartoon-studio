@@ -43,6 +43,7 @@ jobs:
 
       - name: Step 2 - Render animation
         run: |
+          mkdir -p out
           GENRE_CAP="$(echo ${GENRE:0:1} | tr '[:lower:]' '[:upper:]')${GENRE:1}"
           npx remotion lambda render \
             ${{ secrets.REMOTION_SERVE_URL }} \
@@ -52,6 +53,8 @@ jobs:
             --concurrency-per-lambda=1 \
             --timeout=240000 \
             --function-name=remotion-render-4-0-477-mem3008mb-disk2048mb-240sec
+          echo "Video file size:"
+          ls -lh out/${GENRE}_silent.mp4
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
