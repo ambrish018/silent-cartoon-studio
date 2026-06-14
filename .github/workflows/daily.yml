@@ -9,15 +9,15 @@ jobs:
   make-and-publish:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Check out project files
-        uses: actions/checkout@v5
-        with:
-          node-version: "24"
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v4
         with:
           node-version: "20"
 
@@ -36,7 +36,10 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
       - name: Pick today's genre
-        run: echo "GENRE=$(python3 scripts/pick_genre.py)" >> $GITHUB_ENV
+        run: |
+          GENRE=$(python3 scripts/pick_genre.py)
+          echo "GENRE=$GENRE" >> $GITHUB_ENV
+          echo "Today's genre: $GENRE"
 
       - name: Step 1 - Generate story
         run: python3 scripts/gen_beatsheet.py "$GENRE"
@@ -65,7 +68,6 @@ jobs:
           echo "S3 URL: [$S3_URL]"
           if [ -z "$S3_URL" ]; then
             echo "ERROR: Could not find S3 URL in render output"
-            echo "=== Full output for debugging ==="
             cat /tmp/render_output.txt
             exit 1
           fi
