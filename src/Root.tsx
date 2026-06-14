@@ -31,6 +31,14 @@ export const RemotionRoot: React.FC = () => (
       width={W}
       height={H}
       defaultProps={{ beatSheet: PLACEHOLDER }}
+      calculateMetadata={async ({ props }) => {
+        const sheet = props.beatSheet;
+        const frames = Math.round(sheet.duration_seconds * FPS);
+        return {
+          durationInFrames: frames,
+          props,
+        };
+      }}
     />
     <Composition
       id="Emotional"
@@ -40,6 +48,14 @@ export const RemotionRoot: React.FC = () => (
       width={W}
       height={H}
       defaultProps={{ beatSheet: PLACEHOLDER }}
+      calculateMetadata={async ({ props }) => {
+        const sheet = props.beatSheet;
+        const frames = Math.round(sheet.duration_seconds * FPS);
+        return {
+          durationInFrames: frames,
+          props,
+        };
+      }}
     />
     <Composition
       id="Educational"
@@ -49,6 +65,14 @@ export const RemotionRoot: React.FC = () => (
       width={W}
       height={H}
       defaultProps={{ beatSheet: PLACEHOLDER }}
+      calculateMetadata={async ({ props }) => {
+        const sheet = props.beatSheet;
+        const frames = Math.round(sheet.duration_seconds * FPS);
+        return {
+          durationInFrames: frames,
+          props,
+        };
+      }}
     />
   </>
 );
