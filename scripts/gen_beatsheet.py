@@ -8,74 +8,99 @@ TODAY = datetime.datetime.utcnow().strftime("%Y%m%d")
 OUT   = f"jobs/{TODAY}_{GENRE}.json"
 os.makedirs("jobs", exist_ok=True)
 
-PROMPT = f"""You write SILENT, language-free cartoon micro-stories told purely through
-facial expressions, body motion, music, and sound effects. Cast: Apple, Banana, Carrot,
-and Mochi (a cute puppy). No words — only emoji reaction symbols allowed on screen.
+PROMPT = f"""You write SILENT, language-free cartoon micro-stories.
+Cast: Apple, Banana, Carrot, Mochi (puppy). No words, no text on screen.
 
-Produce ONE short for genre: {GENRE}
-  comedy     = setup -> escalation -> visual punchline
-  emotional  = tiny arc with warm or bittersweet turn (4 beats max)
-  educational = show ONE simple concept visually, wordless
-Length: 60 seconds. Aspect 9:16.
+Genre: {GENRE}
+Length: exactly 60 seconds total.
 
-IMPORTANT: Output ONLY a valid JSON object. No markdown, no code fences, no extra text.
-No trailing commas. All keys in double quotes.
+Return ONLY a JSON object. No markdown. No code fences. No explanation.
+Every string value must use straight double quotes only.
+No trailing commas anywhere.
 
 {{
-  "title_concept": "one-line summary",
+  "title_concept": "short summary",
   "genre": "{GENRE}",
   "duration_seconds": 60,
-  "music_prompt": "text prompt describing mood, tempo, instruments for a music model",
+  "music_prompt": "mood and tempo description for background music",
   "beats": [
     {{
       "start": 0,
-      "end": 5,
+      "end": 6,
       "background": "kitchen",
       "characters": [
-        {{"name": "Apple", "expression": "happy", "pose": "wave", "facing": "right"}}
+        {{"name": "Apple", "expression": "happy", "pose": "idle", "facing": "right"}}
       ],
       "caption_symbol": null,
       "sfx": "pop",
       "camera": "static",
-      "note": "what is happening on screen"
+      "note": "Apple stands in kitchen looking happy"
+    }},
+    {{
+      "start": 6,
+      "end": 12,
+      "background": "kitchen",
+      "characters": [
+        {{"name": "Mochi", "expression": "surprised", "pose": "idle", "facing": "left"}}
+      ],
+      "caption_symbol": "❓",
+      "sfx": "boing",
+      "camera": "static",
+      "note": "Mochi appears looking surprised"
     }}
   ]
 }}
 
-Beat rules:
-- Each beat must be 2 to 6 seconds long
-- All beat timings must add up to exactly 60 seconds
-- Available expressions: neutral happy laughing sad crying surprised angry love thinking scared
-- Available poses: idle wave jump point shrug fall
-- Available backgrounds: kitchen park classroom night plain
-- Available sfx names: pop boing ding crunch sad_trombone rain whoosh
-- camera options: static push_in shake
-- Do NOT add trailing commas after the last item in any list or object"""
+Rules:
+- beats must total exactly 60 seconds
+- each beat is 3 to 8 seconds
+- use only these expressions: neutral happy laughing sad crying surprised angry love thinking scared
+- use only these poses: idle wave jump point shrug fall
+- use only these backgrounds: kitchen park classroom night plain
+- use only these sfx: pop boing ding crunch sad_trombone rain whoosh
+- use only these cameras: static push_in shake
+- make it a complete funny or emotional story with 8 to 12 beats"""
+
+def clean_json(text):
+    # Remove markdown fences
+    text = re.sub(r"```(?:json)?", "", text).strip()
+    # Remove trailing commas before closing bracket or brace
+    text = re.sub(r",\s*\}", "}", text)
+    text = re.sub(r",\s*\]", "]", text)
+    # Extract just the JSON object
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    if match:
+        text = match.group(0)
+    return text.strip()
 
 client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
-resp = client.messages.create(
-    model="claude-sonnet-4-6",
-    max_tokens=2000,
-    messages=[{"role": "user", "content": PROMPT}]
-)
+data = None
+last_error = None
 
-raw = resp.content[0].text.strip()
+for attempt in range(3):
+    print(f"Attempt {attempt + 1} of 3...")
+    try:
+        resp = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=3000,
+            messages=[{"role": "user", "content": PROMPT}]
+        )
+        raw = resp.content[0].text.strip()
+        print(f"Raw response length: {len(raw)} characters")
+        cleaned = clean_json(raw)
+        print(f"Cleaned JSON length: {len(cleaned)} characters")
+        data = json.loads(cleaned)
+        print(f"JSON parsed successfully on attempt {attempt + 1}")
+        break
+    except json.JSONDecodeError as e:
+        print(f"JSON error on attempt {attempt + 1}: {e}")
+        print(f"Raw text around error: {raw[max(0,e.pos-50):e.pos+50]}")
+        last_error = e
+        continue
 
-# Remove markdown code fences if present
-if "```" in raw:
-    raw = re.sub(r"```(?:json)?", "", raw).strip()
-
-# Remove any trailing commas before } or ]
-raw = re.sub(r",\s*([}\]])", r"\1", raw)
-
-# Extract just the JSON object if there is extra text
-match = re.search(r"\{.*\}", raw, re.DOTALL)
-if match:
-    raw = match.group(0)
-
-print("Parsing JSON response...")
-data = json.loads(raw)
+if data is None:
+    raise ValueError(f"Failed to get valid JSON after 3 attempts. Last error: {last_error}")
 
 with open(OUT, "w") as f:
     json.dump(data, f, indent=2)
@@ -84,5 +109,5 @@ with open("jobs/latest.txt", "w") as f:
     f.write(OUT)
 
 print(f"Beat sheet saved to {OUT}")
-print(f"Title concept: {data.get('title_concept')}")
-print(f"Number of beats: {len(data.get('beats', []))}")
+print(f"Title: {data.get('title_concept')}")
+print(f"Beats: {len(data.get('beats', []))}")
