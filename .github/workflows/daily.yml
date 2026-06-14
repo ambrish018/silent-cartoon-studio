@@ -52,7 +52,7 @@ jobs:
             ${{ secrets.REMOTION_SERVE_URL }} \
             "$GENRE_CAP" \
             --out out/${GENRE}_silent.mp4 \
-            --frames-per-lambda=100 \
+            --frames-per-lambda=1800 \
             --concurrency-per-lambda=1
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
