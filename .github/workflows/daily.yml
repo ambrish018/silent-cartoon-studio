@@ -45,6 +45,7 @@ jobs:
         run: |
           mkdir -p out
           GENRE_CAP="$(echo ${GENRE:0:1} | tr '[:lower:]' '[:upper:]')${GENRE:1}"
+          BEAT_SHEET=$(cat jobs/latest.json)
           npx remotion lambda render \
             ${{ secrets.REMOTION_SERVE_URL }} \
             "$GENRE_CAP" \
@@ -52,18 +53,23 @@ jobs:
             --concurrency-per-lambda=1 \
             --timeout=240000 \
             --function-name=remotion-render-4-0-477-mem3008mb-disk2048mb-240sec \
-            2>&1 | tee /tmp/render_output.txt
-          echo "--- Render output saved ---"
-          S3_URL=$(grep "+ S3" /tmp/render_output.txt | awk '{print $3}')
-          echo "S3 URL found: $S3_URL"
+            --props="{\"beatSheet\": $BEAT_SHEET}" \
+            --log=verbose \
+            2>&1 | cat | tee /tmp/render_output.txt
+          echo "--- Extracting S3 URL ---"
+          S3_URL=$(cat /tmp/render_output.txt | sed 's/\x1b\[[0-9;]*m//g' | grep "S3" | grep "https://" | awk '{print $NF}' | head -1)
+          echo "S3 URL: [$S3_URL]"
           python3 -c "
           import urllib.request, sys
-          url = '$S3_URL'
+          url = sys.argv[1].strip()
+          if not url.startswith('http'):
+              print('ERROR: Invalid URL:', repr(url))
+              sys.exit(1)
           out = 'out/${GENRE}_silent.mp4'
           print(f'Downloading from {url}')
           urllib.request.urlretrieve(url, out)
-          print(f'Downloaded successfully')
-          "
+          print('Downloaded successfully')
+          " "$S3_URL"
           echo "Video file size:"
           ls -lh out/${GENRE}_silent.mp4
         env:
