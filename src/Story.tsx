@@ -4,12 +4,11 @@ import {
   Sequence,
   useCurrentFrame,
   useVideoConfig,
-  interpolate,
-  spring,
 } from "remotion";
 import { Character, Pose, Facing } from "./characters/Character";
 import { CharName, Expression } from "./characters/art";
-import { Background, Theme } from "./components/Background";
+import { BackgroundSky, BackgroundClouds, BackgroundTrees, Theme } from "./components/Background";
+import { ParticleLayer } from "./components/ParticleLayer";
 
 export type BeatCharacter = {
   name: CharName;
@@ -39,44 +38,81 @@ export type BeatSheet = {
 
 const FPS = 30;
 
+const O = { transformOrigin: "center center" as const };
+
+function layerTransforms(
+  beat: Beat,
+  frame: number,
+  durationInFrames: number,
+  fps: number
+) {
+  const t = frame / durationInFrames;
+  const ease = t * t;
+  const decay = Math.exp(-frame / (fps * 0.35));
+
+  if (beat.camera === "push_in") {
+    return {
+      sky:    `translate(0, ${-ease * 3}px) scale(${1 + ease * 0.06})`,
+      clouds: `translate(0, ${-ease * 6}px) scale(${1 + ease * 0.10})`,
+      trees:  `translate(0, ${-ease * 10}px) scale(${1 + ease * 0.14})`,
+      chars:  `translate(0, ${-ease * 12}px) scale(${1 + ease * 0.18})`,
+      fg:     `translate(0, ${-ease * 18}px) scale(${1 + ease * 0.26})`,
+    };
+  }
+
+  if (beat.camera === "shake") {
+    const sx = Math.sin(frame * 1.9) * 14 * decay;
+    const sy = Math.cos(frame * 2.7) * 9  * decay;
+    return {
+      sky:    `translate(${sx * 0.15}px, ${sy * 0.15}px)`,
+      clouds: `translate(${sx * 0.35}px, ${sy * 0.35}px)`,
+      trees:  `translate(${sx * 0.65}px, ${sy * 0.65}px)`,
+      chars:  `translate(${sx}px, ${sy}px)`,
+      fg:     `translate(${sx * 1.6}px, ${sy * 1.6}px)`,
+    };
+  }
+
+  const isEmotional = beat.characters.some(c =>
+    (["sad", "crying", "love"] as Expression[]).includes(c.expression)
+  );
+  if (isEmotional) {
+    return {
+      sky:    `scale(${1 + t * 0.02})`,
+      clouds: `scale(${1 + t * 0.03})`,
+      trees:  `scale(${1 + t * 0.04})`,
+      chars:  `scale(${1 + t * 0.05})`,
+      fg:     `scale(${1 + t * 0.07})`,
+    };
+  }
+
+  return { sky: "none", clouds: "none", trees: "none", chars: "none", fg: "none" };
+}
+
 const Scene: React.FC<{ beat: Beat }> = ({ beat }) => {
   const frame = useCurrentFrame();
   const { durationInFrames, fps } = useVideoConfig();
 
-  let sceneTransform = "none";
-  if (beat.camera === "push_in") {
-    const t = frame / durationInFrames;
-    const ease = t * t;
-    const scale = 1 + ease * 0.18;
-    const ty = -ease * 12;
-    sceneTransform = `translate(0, ${ty}px) scale(${scale})`;
-  } else if (beat.camera === "shake") {
-    const decay = Math.exp(-frame / (fps * 0.35));
-    const shakeX = Math.sin(frame * 1.9) * 14 * decay;
-    const shakeY = Math.cos(frame * 2.7) * 9  * decay;
-    sceneTransform = `translate(${shakeX}px, ${shakeY}px)`;
-  } else {
-    const isEmotional = beat.characters.some(c =>
-      (["sad","crying","love"] as Expression[]).includes(c.expression)
-    );
-    if (isEmotional) {
-      const t = frame / durationInFrames;
-      sceneTransform = `scale(${1 + t * 0.05})`;
-    }
-  }
+  const { sky, clouds, trees, chars, fg } = layerTransforms(beat, frame, durationInFrames, fps);
 
   const n = beat.characters.length;
   const charWidth = n <= 1 ? 460 : n === 2 ? 380 : n === 3 ? 300 : 240;
 
   return (
     <AbsoluteFill>
-      <Background theme={beat.background} />
-      <AbsoluteFill
-        style={{
-          transform: sceneTransform,
-          transformOrigin: "center center",
-        }}
-      >
+      {/* Layer 0: sky — least parallax */}
+      <AbsoluteFill style={{ transform: sky, ...O }}>
+        <BackgroundSky theme={beat.background} />
+      </AbsoluteFill>
+      {/* Layer 1: clouds */}
+      <AbsoluteFill style={{ transform: clouds, ...O }}>
+        <BackgroundClouds theme={beat.background} />
+      </AbsoluteFill>
+      {/* Layer 2: trees / ground */}
+      <AbsoluteFill style={{ transform: trees, ...O }}>
+        <BackgroundTrees theme={beat.background} />
+      </AbsoluteFill>
+      {/* Layer 3: characters */}
+      <AbsoluteFill style={{ transform: chars, ...O }}>
         <AbsoluteFill
           style={{
             flexDirection: "row",
@@ -97,7 +133,10 @@ const Scene: React.FC<{ beat: Beat }> = ({ beat }) => {
             />
           ))}
         </AbsoluteFill>
-
+      </AbsoluteFill>
+      {/* Layer 4: foreground particles — most parallax */}
+      <AbsoluteFill style={{ transform: fg, ...O }}>
+        <ParticleLayer theme={beat.background} />
       </AbsoluteFill>
     </AbsoluteFill>
   );
