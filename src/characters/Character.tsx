@@ -59,7 +59,7 @@ export const Character: React.FC<{
       translateY = idle + interpolate(frame, [0, ANT, EX], [0, 20, 20], { extrapolateRight: "clamp" });
     } else {
       const j = spring({ frame: ef, fps, config: { damping: 8, mass: 0.6 } });
-      translateY = idle - interpolate(Math.sin(j * Math.PI), [0, 1], [0, 70]);
+      translateY = idle - interpolate(Math.sin(j * Math.PI), [0, 1], [0, 70], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
     }
   } else if (pose === "fall") {
     if (frame < EX) {

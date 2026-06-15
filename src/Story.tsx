@@ -36,17 +36,15 @@ export type BeatSheet = {
   beats: Beat[];
 };
 
-const FPS = 30;
-
 const O = { transformOrigin: "center center" as const };
 
 function layerTransforms(
   beat: Beat,
   frame: number,
-  durationInFrames: number,
+  beatDurationFrames: number,
   fps: number
 ) {
-  const t = frame / durationInFrames;
+  const t = frame / beatDurationFrames;
   const ease = t * t;
   const decay = Math.exp(-frame / (fps * 0.35));
 
@@ -90,9 +88,10 @@ function layerTransforms(
 
 const Scene: React.FC<{ beat: Beat }> = ({ beat }) => {
   const frame = useCurrentFrame();
-  const { durationInFrames, fps } = useVideoConfig();
+  const { fps } = useVideoConfig();
+  const beatDurationFrames = Math.round((beat.end - beat.start) * fps);
 
-  const { sky, clouds, trees, chars, fg } = layerTransforms(beat, frame, durationInFrames, fps);
+  const { sky, clouds, trees, chars, fg } = layerTransforms(beat, frame, beatDurationFrames, fps);
 
   const n = beat.characters.length;
   const charWidth = n <= 1 ? 460 : n === 2 ? 380 : n === 3 ? 300 : 240;
@@ -143,11 +142,12 @@ const Scene: React.FC<{ beat: Beat }> = ({ beat }) => {
 };
 
 export const Story: React.FC<{ beatSheet: BeatSheet }> = ({ beatSheet }) => {
+  const { fps } = useVideoConfig();
   return (
     <AbsoluteFill style={{ backgroundColor: "#fdf6ec" }}>
       {beatSheet.beats.map((beat, i) => {
-        const from = Math.round(beat.start * FPS);
-        const dur = Math.round((beat.end - beat.start) * FPS);
+        const from = Math.round(beat.start * fps);
+        const dur = Math.round((beat.end - beat.start) * fps);
         return (
           <Sequence key={i} from={from} durationInFrames={Math.max(dur, 1)}>
             <Scene beat={beat} />
