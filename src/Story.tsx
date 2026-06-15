@@ -206,6 +206,11 @@ function layerTransforms(
 type TransType = "whip" | "fade" | "push";
 const TRANS = 6; // frames of transition on each side of a cut (0.2s @ 30fps)
 
+// Base scene zoom, anchored at the floor. The 9:16 frame is much taller than the
+// characters; without this the subjects sit tiny at the bottom under ~70% empty wall.
+// Scaling from bottom-center enlarges the cast + floor and crops the dead upper wall.
+const BASE_ZOOM = 1.42;
+
 function beatEmotional(b: Beat): boolean {
   return b.characters.some(c =>
     (["sad", "crying", "love"] as Expression[]).includes(effectiveExpr(c)));
@@ -223,17 +228,19 @@ const smooth = (p: number) => { const c = Math.max(0, Math.min(1, p)); return c 
 function sceneTransition(
   frame: number, dur: number, inType: TransType | null, outType: TransType | null
 ): { transform: string; opacity: number; filter?: string } {
+  // Whip slide kept small (120px) so the opaque scene never exposes a big band of
+  // background color mid-cut; the blur carries the speed read instead.
   let tx = 0, sc = 1, op = 1, blur = 0;
   if (inType && frame < TRANS) {
     const p = smooth(frame / TRANS); // 0→1 as the beat enters
-    if (inType === "whip") { tx = (1 - p) * 460; blur = (1 - p) * 9; }
+    if (inType === "whip") { tx = (1 - p) * 120; blur = (1 - p) * 13; }
     else if (inType === "fade") { op = p; }
     else { sc = 1 + (1 - p) * 0.06; op = 0.45 + 0.55 * p; }
   }
   const exitStart = dur - TRANS;
   if (outType && frame > exitStart) {
     const p = smooth((frame - exitStart) / TRANS); // 0→1 as the beat exits
-    if (outType === "whip") { tx = -p * 460; blur = p * 9; }
+    if (outType === "whip") { tx = -p * 120; blur = p * 13; }
     else if (outType === "fade") { op = 1 - p; }
     else { sc = 1 - p * 0.04; op = 1 - 0.55 * p; }
   }
@@ -256,7 +263,7 @@ const Scene: React.FC<{ beat: Beat; inType?: TransType | null; outType?: TransTy
   const { sky, clouds, trees, chars, fg } = layerTransforms(beat, frame, beatDurationFrames, fps);
 
   const n = beat.characters.length;
-  const charWidth = n <= 1 ? 640 : n === 2 ? 480 : n === 3 ? 340 : 260;
+  const charWidth = n <= 1 ? 820 : n === 2 ? 640 : n === 3 ? 470 : 360;
   const hasPositions = beat.characters.some(c => c.position);
   const castShadow = themeShadow(beat.background);
 
@@ -273,6 +280,8 @@ const Scene: React.FC<{ beat: Beat; inType?: TransType | null; outType?: TransTy
 
   return (
     <AbsoluteFill style={{ transform: trans.transform, opacity: trans.opacity, filter: trans.filter, ...O }}>
+      {/* Base zoom: enlarge subjects + crop the empty upper wall (anchored at the floor) */}
+      <AbsoluteFill style={{ transform: `scale(${BASE_ZOOM})`, transformOrigin: "bottom center" }}>
       {/* Layer 0: sky — least parallax */}
       <AbsoluteFill style={{ transform: sky, ...O }}>
         <BackgroundSky theme={beat.background} />
@@ -356,6 +365,7 @@ const Scene: React.FC<{ beat: Beat; inType?: TransType | null; outType?: TransTy
       {/* Layer 4: foreground particles — most parallax */}
       <AbsoluteFill style={{ transform: fg, ...O }}>
         <ParticleLayer theme={beat.background} characters={beat.characters} />
+      </AbsoluteFill>
       </AbsoluteFill>
     </AbsoluteFill>
   );

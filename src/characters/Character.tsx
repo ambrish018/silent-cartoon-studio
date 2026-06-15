@@ -156,15 +156,10 @@ export const Character: React.FC<{
   if (activePose === "point" && frame >= EX) {
     blurX = Math.max(0, interpolate(ef, [0, 8], [15, 0], { extrapolateRight: "clamp" }));
   }
-  if (activePose === "wave" && frame >= EX) {
-    blurX = Math.abs(Math.cos(ef / 5)) * 4;
-  }
-  if (activeExpression === "angry" || emotion === "angry") {
-    blurX = blurY = Math.abs(Math.sin(frame * 2.1)) * 3.5;
-  }
-  if (activeExpression === "scared" || emotion === "scared") {
-    blurX = blurY = Math.abs(Math.sin(frame * 3.2)) * 3;
-  }
+  // NOTE: blur only on transient fast motion (jump launch/land, fall, point thrust).
+  // `wave` is a sustained gesture — a per-frame blur there just smears the character
+  // the whole beat. angry/scared are emotions, not motion — their tremble reads through
+  // the dx/dy/dr in the motion presets, no blur needed.
 
   return (
     <div
