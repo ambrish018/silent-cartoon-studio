@@ -41,21 +41,28 @@ const FPS = 30;
 
 const Scene: React.FC<{ beat: Beat }> = ({ beat }) => {
   const frame = useCurrentFrame();
-  const { durationInFrames } = useVideoConfig();
+  const { durationInFrames, fps } = useVideoConfig();
 
   let sceneTransform = "none";
   if (beat.camera === "push_in") {
-    const scale = interpolate(
-      frame,
-      [0, durationInFrames],
-      [1, 1.12],
-      { extrapolateRight: "clamp" }
-    );
-    sceneTransform = `scale(${scale})`;
+    const t = frame / durationInFrames;
+    const ease = t * t;
+    const scale = 1 + ease * 0.18;
+    const ty = -ease * 12;
+    sceneTransform = `translate(0, ${ty}px) scale(${scale})`;
   } else if (beat.camera === "shake") {
-    const shakeX = Math.sin(frame * 1.7) * 8;
-    const shakeY = Math.cos(frame * 2.3) * 8;
+    const decay = Math.exp(-frame / (fps * 0.35));
+    const shakeX = Math.sin(frame * 1.9) * 14 * decay;
+    const shakeY = Math.cos(frame * 2.7) * 9  * decay;
     sceneTransform = `translate(${shakeX}px, ${shakeY}px)`;
+  } else {
+    const isEmotional = beat.characters.some(c =>
+      (["sad","crying","love"] as Expression[]).includes(c.expression)
+    );
+    if (isEmotional) {
+      const t = frame / durationInFrames;
+      sceneTransform = `scale(${1 + t * 0.05})`;
+    }
   }
 
   const n = beat.characters.length;
