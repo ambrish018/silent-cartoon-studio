@@ -10,12 +10,64 @@ os.makedirs("jobs", exist_ok=True)
 
 PROMPT = f"""You write SILENT, language-free cartoon micro-stories.
 Cast: Apple, Banana, Carrot, Mochi (puppy). No words, no text on screen.
-Start IN MEDIAS RES — beat 1 drops the viewer into something already happening.
-No setup beats. No character introductions. No establishing shots.
-Beat 1 must create an immediate question: Why? What happened? What next?
-
 Genre: {GENRE}
-Length: exactly 60 seconds total.
+Length: exactly 60 seconds total, 8 to 12 beats.
+
+PROTAGONIST: Banana. Banana drives the story — Banana attempts, Banana fails, Banana nearly breaks, Banana succeeds.
+Other characters (Apple, Carrot, Mochi) react, help, mock, or witness — but Banana is the emotional center.
+
+MANDATORY NARRATIVE ARC — follow exactly in this order:
+
+ACT 1 — HOOK (beats 1-2, ~8s)
+  Drop viewer in MID-ACTION. Banana is already mid-attempt at something urgent.
+  The goal is visible but the stakes are unclear. Creates immediate question.
+  Camera: shake or push_in. Banana expression: surprised or scared or angry.
+  Emotional level: 6/10.
+
+ACT 2 — PROBLEM (beats 3-4, ~8s)
+  The obstacle is fully revealed. Stakes are clear and high.
+  Banana squares up, determined. Brief optimism before the fall.
+  Camera: push_in. Banana expression: thinking or happy (false confidence).
+  Emotional level: 5/10 — calm before the storm.
+
+ACT 3 — FAIL 1 (beat 5, ~6s)
+  Banana tries. Fails. Surprising but recoverable.
+  Shakes it off — still confident enough to retry.
+  Camera: shake. Banana expression: sad or surprised. SFX: sad_trombone or crunch.
+  Emotional level: 6/10 — stings but not fatal.
+
+ACT 4 — FAIL 2 (beats 6-7, ~8s)
+  Banana tries harder. Fails WORSE. Something goes more wrong than before.
+  Banana is visibly rattled. Others react with concern or nervous laughter.
+  Camera: shake (more intense than Act 3). Banana expression: crying or scared. SFX: sad_trombone.
+  Emotional level: 8/10 — doubt sets in.
+
+ACT 5 — FAIL 3 + NEAR QUIT (beats 8-9, ~10s)
+  Third attempt. The worst failure yet — feels devastating.
+  Banana sits alone, head down, about to walk away. Lowest point.
+  Beat 8: the failure. Beat 9: Banana nearly gives up (idle, sad or crying, alone).
+  Camera: static (stillness = defeat). SFX: sad_trombone or rain. No other characters in beat 9.
+  Emotional level: 10/10 — viewer must feel the weight of giving up.
+
+ACT 6 — SUCCESS (beats 10-11, ~10s)
+  Something shifts — inner will, a small nudge from a friend, or a sudden idea.
+  Banana tries ONE MORE TIME with everything left.
+  It WORKS. The breakthrough is explosive — pure shock then joy.
+  Camera: push_in. Banana expression: surprised → laughing. SFX: ding then pop.
+  Emotional level: spikes to 10/10 release after the 10/10 despair.
+
+ACT 7 — CELEBRATION (beat 12, ~10s)
+  All characters together. The victory feels EARNED by three failures and a near-quit.
+  Warmth, relief, shared joy. Audience exhales.
+  Camera: push_in or static. All expressions: laughing or love. SFX: ding or pop.
+  Emotional level: 10/10 — warmth and release.
+
+ESCALATION RULES:
+- Fail 1 < Fail 2 < Fail 3 in severity — expressions deepen, camera shakes harder each time
+- Beat 9 (near-quit) must be visually quieter than all failure beats — stillness is more devastating than chaos
+- The success payoff is proportional to the depth of Act 5 despair — do not rush it
+- Music prompt must arc: playful → tense → desperate → triumphant swell
+- Banana must appear in EVERY beat
 
 Return ONLY a JSON object. No markdown. No code fences. No explanation.
 Every string value must use straight double quotes only.
@@ -25,7 +77,7 @@ No trailing commas anywhere.
   "title_concept": "short summary",
   "genre": "{GENRE}",
   "duration_seconds": 60,
-  "music_prompt": "mood and tempo description for background music",
+  "music_prompt": "mood and tempo description reflecting tension buildup and triumphant release",
   "beats": [
     {{
       "start": 0,
@@ -38,34 +90,41 @@ No trailing commas anywhere.
       "caption_symbol": null,
       "sfx": "boing",
       "camera": "shake",
-      "note": "Apple mid-leap fleeing something — Mochi is delighted — cause unknown"
+      "note": "ACT 1 HOOK — Banana mid-attempt at something urgent — cause unknown — immediate tension"
     }},
     {{
       "start": 5,
       "end": 10,
       "background": "kitchen",
       "characters": [
-        {{"name": "Banana", "expression": "angry", "pose": "point", "facing": "left"}},
-        {{"name": "Apple", "expression": "scared", "pose": "fall", "facing": "right"}}
+        {{"name": "Banana", "expression": "thinking", "pose": "idle", "facing": "right"}},
+        {{"name": "Apple", "expression": "surprised", "pose": "point", "facing": "left"}}
       ],
       "caption_symbol": null,
-      "sfx": "crunch",
+      "sfx": "null",
       "camera": "push_in",
-      "note": "Banana enters furious — Apple trips — the cause is still unclear"
+      "note": "ACT 2 PROBLEM — stakes clear — Banana commits to solving it — false confidence"
     }}
   ]
 }}
 
-Rules:
+Hard rules:
 - beats must total exactly 60 seconds
 - each beat is 3 to 8 seconds
+- 10 to 12 beats total (7-act arc needs room)
+- follow the 7-act arc above — label each beat note with its ACT number and name
+- Banana must appear in every single beat
 - use only these expressions: neutral happy laughing sad crying surprised angry love thinking scared
 - use only these poses: idle wave jump point shrug fall
 - use only these backgrounds: kitchen park classroom night plain
 - use only these sfx: pop boing ding crunch sad_trombone rain whoosh
 - use only these cameras: static push_in shake
-- beat 1 must start mid-action — viewer arrives after something has already begun
-- make it a complete funny or emotional story with 8 to 12 beats"""
+- Act 3 fail: sad_trombone or crunch
+- Act 4 fail: sad_trombone, camera shake harder than Act 3
+- Act 5 fail+quit: sad_trombone or rain, beat 9 camera must be static
+- Act 5 beat 9: Banana alone, expression crying or sad, pose idle — no other characters
+- Act 6 success: ding then pop across two beats
+- Act 7 celebration: love or laughing for all characters, ding or pop"""
 
 def clean_json(text):
     # Remove markdown fences
