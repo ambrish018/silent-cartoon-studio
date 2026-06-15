@@ -51,19 +51,42 @@ export const Character: React.FC<{
   let rotate = 0;
   let translateX = 0;
 
+  const ANT = 5, HOLD = 2, EX = ANT + HOLD;
+  const ef = Math.max(0, frame - EX);
+
   if (pose === "jump") {
-    const j = spring({ frame, fps, config: { damping: 8, mass: 0.6 } });
-    translateY = idle - interpolate(Math.sin(j * Math.PI), [0, 1], [0, 70]);
+    if (frame < EX) {
+      translateY = idle + interpolate(frame, [0, ANT, EX], [0, 20, 20], { extrapolateRight: "clamp" });
+    } else {
+      const j = spring({ frame: ef, fps, config: { damping: 8, mass: 0.6 } });
+      translateY = idle - interpolate(Math.sin(j * Math.PI), [0, 1], [0, 70]);
+    }
   } else if (pose === "fall") {
-    translateY = idle + interpolate(frame, [0, fps], [0, 90], { extrapolateRight: "clamp" });
-    rotate = interpolate(frame, [0, fps], [0, 22], { extrapolateRight: "clamp" });
+    if (frame < EX) {
+      rotate = -interpolate(frame, [0, ANT, EX], [0, 6, 6], { extrapolateRight: "clamp" });
+    } else {
+      translateY = idle + interpolate(ef, [0, fps], [0, 90], { extrapolateRight: "clamp" });
+      rotate = interpolate(ef, [0, fps], [0, 22], { extrapolateRight: "clamp" });
+    }
   } else if (pose === "wave") {
-    rotate = Math.sin(frame / 5) * 6;
+    if (frame < EX) {
+      rotate = -interpolate(frame, [0, ANT, EX], [0, 10, 10], { extrapolateRight: "clamp" });
+    } else {
+      rotate = Math.sin(ef / 5) * 6;
+    }
   } else if (pose === "shrug") {
-    translateY = idle - 4;
-    rotate = Math.sin(frame / 16) * 3;
+    if (frame < EX) {
+      translateY = idle + interpolate(frame, [0, ANT, EX], [0, 10, 10], { extrapolateRight: "clamp" });
+    } else {
+      translateY = idle - 4;
+      rotate = Math.sin(ef / 16) * 3;
+    }
   } else if (pose === "point") {
-    translateX = 6;
+    if (frame < EX) {
+      translateX = -interpolate(frame, [0, ANT, EX], [0, 10, 10], { extrapolateRight: "clamp" });
+    } else {
+      translateX = 10;
+    }
   }
 
   const flip = facing === "left" ? -1 : 1;
