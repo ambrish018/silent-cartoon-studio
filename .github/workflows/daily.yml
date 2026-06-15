@@ -54,7 +54,7 @@ jobs:
           npx remotion lambda render \
             ${{ secrets.REMOTION_SERVE_URL }} \
             "$GENRE_CAP" \
-            --frames-per-lambda=600 \
+            --frames-per-lambda=100 \
             --concurrency-per-lambda=1 \
             --timeout=360000 \
             --function-name=remotion-render-4-0-477-mem3008mb-disk2048mb-360sec \
