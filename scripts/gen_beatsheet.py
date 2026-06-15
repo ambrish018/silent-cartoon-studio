@@ -84,13 +84,13 @@ No trailing commas anywhere.
       "end": 5,
       "background": "kitchen",
       "characters": [
-        {{"name": "Apple", "expression": "scared", "pose": "jump", "facing": "left"}},
+        {{"name": "Banana", "expression": "scared", "pose": "jump", "facing": "left"}},
         {{"name": "Mochi", "expression": "laughing", "pose": "point", "facing": "right"}}
       ],
       "caption_symbol": null,
       "sfx": "boing",
       "camera": "shake",
-      "note": "ACT 1 HOOK — Banana mid-attempt at something urgent — cause unknown — immediate tension"
+      "note": "ACT 1 HOOK — Banana mid-leap, fleeing something — cause unknown — immediate tension"
     }},
     {{
       "start": 5,
@@ -101,7 +101,7 @@ No trailing commas anywhere.
         {{"name": "Apple", "expression": "surprised", "pose": "point", "facing": "left"}}
       ],
       "caption_symbol": null,
-      "sfx": "null",
+      "sfx": null,
       "camera": "push_in",
       "note": "ACT 2 PROBLEM — stakes clear — Banana commits to solving it — false confidence"
     }}
@@ -111,7 +111,7 @@ No trailing commas anywhere.
 Hard rules:
 - beats must total exactly 60 seconds
 - each beat is 3 to 8 seconds
-- 10 to 12 beats total (7-act arc needs room)
+- exactly 12 beats total
 - follow the 7-act arc above — label each beat note with its ACT number and name
 - Banana must appear in every single beat
 - use only these expressions: neutral happy laughing sad crying surprised angry love thinking scared
