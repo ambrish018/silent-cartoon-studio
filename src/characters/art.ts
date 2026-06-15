@@ -1,5 +1,16 @@
 const STROKE = "#2f2a26";
-const SW = 5;
+const SW = 7;
+
+const BODY_FILL: Record<string, string> = {
+  Apple:  "#ff5a5f",
+  Banana: "#ffd23f",
+  Carrot: "#ff8a3d",
+  Mochi:  "#f2c896",
+};
+
+const BLINK_OFFSET: Record<string, number> = {
+  Apple: 0, Banana: 22, Carrot: 45, Mochi: 67,
+};
 
 export type Expression =
   | "neutral" | "happy" | "laughing" | "sad" | "crying"
@@ -10,38 +21,66 @@ function eyes(expr: Expression, cx: number, cy: number): string {
   const ex = 23, ey = cy - 6, L = cx - ex, R = cx + ex;
   let s = "";
   if (["neutral","sad","crying","angry","thinking","scared"].includes(expr)) {
-    const r = expr === "scared" ? 10 : 7;
+    const r = expr === "scared" ? 15 : 11;
     s += `<circle cx="${L}" cy="${ey}" r="${r}" fill="${STROKE}"/>`;
     s += `<circle cx="${R}" cy="${ey}" r="${r}" fill="${STROKE}"/>`;
     if (["neutral","sad","crying","scared"].includes(expr)) {
-      s += `<circle cx="${L+2}" cy="${ey-2}" r="2.2" fill="#fff"/>`;
-      s += `<circle cx="${R+2}" cy="${ey-2}" r="2.2" fill="#fff"/>`;
+      s += `<circle cx="${L+3}" cy="${ey-3}" r="3.5" fill="#fff"/>`;
+      s += `<circle cx="${R+3}" cy="${ey-3}" r="3.5" fill="#fff"/>`;
     }
   }
   if (expr === "happy" || expr === "laughing")
     for (const x of [L, R])
-      s += `<path d="M ${x-10},${ey+3} Q ${x},${ey-9} ${x+10},${ey+3}" stroke="${STROKE}" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+      s += `<path d="M ${x-14},${ey+4} Q ${x},${ey-14} ${x+14},${ey+4}" stroke="${STROKE}" stroke-width="6" fill="none" stroke-linecap="round"/>`;
   if (expr === "surprised")
     for (const x of [L, R]) {
-      s += `<circle cx="${x}" cy="${ey}" r="11" fill="#fff" stroke="${STROKE}" stroke-width="3.5"/>`;
-      s += `<circle cx="${x}" cy="${ey+2}" r="5" fill="${STROKE}"/>`;
+      s += `<circle cx="${x}" cy="${ey}" r="15" fill="#fff" stroke="${STROKE}" stroke-width="5"/>`;
+      s += `<circle cx="${x}" cy="${ey+2}" r="8" fill="${STROKE}"/>`;
     }
   if (expr === "love")
     for (const x of [L, R])
-      s += `<path d="M ${x},${ey+8} C ${x-13},${ey-6} ${x-2},${ey-12} ${x},${ey-3} C ${x+2},${ey-12} ${x+13},${ey-6} ${x},${ey+8} Z" fill="#ff4d6d"/>`;
-  if (expr === "angry") {
-    s += `<line x1="${L-10}" y1="${ey-10}" x2="${L+8}" y2="${ey-4}" stroke="${STROKE}" stroke-width="4.5" stroke-linecap="round"/>`;
-    s += `<line x1="${R+10}" y1="${ey-10}" x2="${R-8}" y2="${ey-4}" stroke="${STROKE}" stroke-width="4.5" stroke-linecap="round"/>`;
-  }
-  if (expr === "sad" || expr === "crying") {
-    s += `<line x1="${L-9}" y1="${ey-11}" x2="${L+7}" y2="${ey-13}" stroke="${STROKE}" stroke-width="4" stroke-linecap="round"/>`;
-    s += `<line x1="${R+9}" y1="${ey-11}" x2="${R-7}" y2="${ey-13}" stroke="${STROKE}" stroke-width="4" stroke-linecap="round"/>`;
-  }
+      s += `<path d="M ${x},${ey+10} C ${x-17},${ey-8} ${x-2},${ey-16} ${x},${ey-4} C ${x+2},${ey-16} ${x+17},${ey-8} ${x},${ey+10} Z" fill="#ff4d6d"/>`;
   if (expr === "crying")
     for (const x of [L, R])
-      s += `<path d="M ${x},${ey+9} q -5,9 0,11 q 5,-2 0,-11 Z" fill="#5bc8ff"/>`;
-  if (expr === "thinking")
-    s += `<line x1="${R+9}" y1="${ey-12}" x2="${R-7}" y2="${ey-9}" stroke="${STROKE}" stroke-width="4" stroke-linecap="round"/>`;
+      s += `<path d="M ${x},${ey+12} q -7,14 0,16 q 7,-3 0,-16 Z" fill="#5bc8ff"/>`;
+  return s;
+}
+
+function eyebrows(expr: Expression, cx: number, cy: number): string {
+  const ex = 23, ey = cy - 6;
+  const L = cx - ex, R = cx + ex;
+  const by = ey - 20;
+  let s = "";
+  switch (expr) {
+    case "neutral":
+      s += `<line x1="${L-13}" y1="${by}" x2="${L+13}" y2="${by}" stroke="${STROKE}" stroke-width="7" stroke-linecap="round"/>`;
+      s += `<line x1="${R-13}" y1="${by}" x2="${R+13}" y2="${by}" stroke="${STROKE}" stroke-width="7" stroke-linecap="round"/>`;
+      break;
+    case "happy": case "laughing": case "love":
+      s += `<path d="M ${L-13},${by+6} Q ${L},${by-10} ${L+13},${by+6}" stroke="${STROKE}" stroke-width="7" fill="none" stroke-linecap="round"/>`;
+      s += `<path d="M ${R-13},${by+6} Q ${R},${by-10} ${R+13},${by+6}" stroke="${STROKE}" stroke-width="7" fill="none" stroke-linecap="round"/>`;
+      break;
+    case "surprised":
+      s += `<path d="M ${L-13},${by-7} Q ${L},${by-22} ${L+13},${by-7}" stroke="${STROKE}" stroke-width="7" fill="none" stroke-linecap="round"/>`;
+      s += `<path d="M ${R-13},${by-7} Q ${R},${by-22} ${R+13},${by-7}" stroke="${STROKE}" stroke-width="7" fill="none" stroke-linecap="round"/>`;
+      break;
+    case "sad": case "crying":
+      s += `<line x1="${L-13}" y1="${by+4}" x2="${L+13}" y2="${by-10}" stroke="${STROKE}" stroke-width="7" stroke-linecap="round"/>`;
+      s += `<line x1="${R-13}" y1="${by-10}" x2="${R+13}" y2="${by+4}" stroke="${STROKE}" stroke-width="7" stroke-linecap="round"/>`;
+      break;
+    case "angry":
+      s += `<line x1="${L-13}" y1="${by-7}" x2="${L+13}" y2="${by+10}" stroke="${STROKE}" stroke-width="8" stroke-linecap="round"/>`;
+      s += `<line x1="${R-13}" y1="${by+10}" x2="${R+13}" y2="${by-7}" stroke="${STROKE}" stroke-width="8" stroke-linecap="round"/>`;
+      break;
+    case "thinking":
+      s += `<line x1="${L-13}" y1="${by}" x2="${L+13}" y2="${by}" stroke="${STROKE}" stroke-width="7" stroke-linecap="round"/>`;
+      s += `<line x1="${R-13}" y1="${by-10}" x2="${R+13}" y2="${by+4}" stroke="${STROKE}" stroke-width="7" stroke-linecap="round"/>`;
+      break;
+    case "scared":
+      s += `<path d="M ${L-13},${by-3} Q ${L},${by-16} ${L+13},${by-3}" stroke="${STROKE}" stroke-width="7" fill="none" stroke-linecap="round"/>`;
+      s += `<path d="M ${R-13},${by-3} Q ${R},${by-16} ${R+13},${by-3}" stroke="${STROKE}" stroke-width="7" fill="none" stroke-linecap="round"/>`;
+      break;
+  }
   return s;
 }
 
@@ -49,36 +88,36 @@ function mouth(expr: Expression, cx: number, cy: number): string {
   const my = cy + 22;
   switch (expr) {
     case "neutral":
-      return `<path d="M ${cx-13},${my} Q ${cx},${my+7} ${cx+13},${my}" stroke="${STROKE}" stroke-width="${SW}" fill="none" stroke-linecap="round"/>`;
+      return `<path d="M ${cx-19},${my} Q ${cx},${my+11} ${cx+19},${my}" stroke="${STROKE}" stroke-width="${SW}" fill="none" stroke-linecap="round"/>`;
     case "happy":
     case "love":
-      return `<path d="M ${cx-18},${my-3} Q ${cx},${my+14} ${cx+18},${my-3}" stroke="${STROKE}" stroke-width="${SW}" fill="none" stroke-linecap="round"/>`;
+      return `<path d="M ${cx-24},${my-3} Q ${cx},${my+20} ${cx+24},${my-3}" stroke="${STROKE}" stroke-width="${SW}" fill="none" stroke-linecap="round"/>`;
     case "laughing":
-      return `<path d="M ${cx-19},${my-4} Q ${cx},${my+20} ${cx+19},${my-4} Z" fill="${STROKE}"/>`
-           + `<path d="M ${cx-12},${my+6} Q ${cx},${my+15} ${cx+12},${my+6} Z" fill="#ff7a93"/>`;
+      return `<path d="M ${cx-26},${my-5} Q ${cx},${my+28} ${cx+26},${my-5} Z" fill="${STROKE}"/>`
+           + `<path d="M ${cx-17},${my+8} Q ${cx},${my+22} ${cx+17},${my+8} Z" fill="#ff7a93"/>`;
     case "surprised":
-      return `<ellipse cx="${cx}" cy="${my+2}" rx="8" ry="10" fill="${STROKE}"/>`;
+      return `<ellipse cx="${cx}" cy="${my+2}" rx="12" ry="14" fill="${STROKE}"/>`;
     case "sad":
     case "crying":
-      return `<path d="M ${cx-13},${my+6} Q ${cx},${my-6} ${cx+13},${my+6}" stroke="${STROKE}" stroke-width="${SW}" fill="none" stroke-linecap="round"/>`;
+      return `<path d="M ${cx-19},${my+9} Q ${cx},${my-10} ${cx+19},${my+9}" stroke="${STROKE}" stroke-width="${SW}" fill="none" stroke-linecap="round"/>`;
     case "angry":
-      return `<path d="M ${cx-13},${my+3} L ${cx-4},${my-2} L ${cx+4},${my+3} L ${cx+13},${my-2}" stroke="${STROKE}" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
+      return `<path d="M ${cx-20},${my+5} L ${cx-7},${my-4} L ${cx+7},${my+5} L ${cx+20},${my-4}" stroke="${STROKE}" stroke-width="${SW}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
     case "thinking":
-      return `<line x1="${cx-6}" y1="${my+2}" x2="${cx+12}" y2="${my-1}" stroke="${STROKE}" stroke-width="${SW}" stroke-linecap="round"/>`;
+      return `<line x1="${cx-8}" y1="${my+2}" x2="${cx+15}" y2="${my-1}" stroke="${STROKE}" stroke-width="${SW}" stroke-linecap="round"/>`;
     case "scared":
-      return `<path d="M ${cx-13},${my} q 6,-7 6.5,0 q 0.5,7 6.5,0 q 6,-7 6.5,0" stroke="${STROKE}" stroke-width="4.5" fill="none" stroke-linecap="round"/>`;
+      return `<path d="M ${cx-21},${my} q 7,-12 14,0 q 7,12 14,0 q 7,-12 14,0" stroke="${STROKE}" stroke-width="${SW}" fill="none" stroke-linecap="round"/>`;
     default:
       return "";
   }
 }
 
 function cheeks(cx: number, cy: number, col = "#ff9db0"): string {
-  return `<circle cx="${cx-34}" cy="${cy+10}" r="7" fill="${col}" opacity="0.55"/>`
-       + `<circle cx="${cx+34}" cy="${cy+10}" r="7" fill="${col}" opacity="0.55"/>`;
+  return `<circle cx="${cx-34}" cy="${cy+10}" r="11" fill="${col}" opacity="0.65"/>`
+       + `<circle cx="${cx+34}" cy="${cy+10}" r="11" fill="${col}" opacity="0.65"/>`;
 }
 
 export function faceSVG(expr: Expression, cx: number, cy: number): string {
-  return eyes(expr, cx, cy) + mouth(expr, cx, cy);
+  return eyebrows(expr, cx, cy) + eyes(expr, cx, cy) + mouth(expr, cx, cy);
 }
 
 const BODIES: Record<CharName, { face: [number,number]; cheek: [number,number]; svg: string }> = {
@@ -117,8 +156,33 @@ const BODIES: Record<CharName, { face: [number,number]; cheek: [number,number]; 
   },
 };
 
-export function characterSVG(name: CharName, expr: Expression): string {
+function blinkSVG(name: CharName, frame: number, cx: number, cy: number): string {
+  const BLINK_INTERVAL = 90;
+  const BLINK_DURATION = 5;
+  const phase = (frame + (BLINK_OFFSET[name] ?? 0)) % BLINK_INTERVAL;
+  if (phase >= BLINK_DURATION) return "";
+  const t = phase / (BLINK_DURATION - 1);
+  const progress = 1 - Math.abs(2 * t - 1);
+  if (progress <= 0) return "";
+  const ex = 23, ey = cy - 6, L = cx - ex, R = cx + ex;
+  const r = 12;
+  const fill = BODY_FILL[name] ?? STROKE;
+  const h = r * 2 * progress;
+  let s = "";
+  for (const x of [L, R]) {
+    s += `<rect x="${x-r}" y="${ey-r}" width="${r*2}" height="${h}" rx="4" fill="${fill}"/>`;
+    if (progress > 0.5) {
+      const lidY = ey - r + h;
+      s += `<line x1="${x-r+2}" y1="${lidY}" x2="${x+r-2}" y2="${lidY}" stroke="${STROKE}" stroke-width="5" stroke-linecap="round"/>`;
+    }
+  }
+  return s;
+}
+
+export function characterSVG(name: CharName, expr: Expression, frame = 0): string {
   const b = BODIES[name];
   const cheekCol = name === "Mochi" ? "#ff8aa0" : "#ff9db0";
-  return b.svg + cheeks(b.cheek[0], b.cheek[1], cheekCol) + faceSVG(expr, b.face[0], b.face[1]);
+  return b.svg + cheeks(b.cheek[0], b.cheek[1], cheekCol)
+       + faceSVG(expr, b.face[0], b.face[1])
+       + blinkSVG(name, frame, b.face[0], b.face[1]);
 }

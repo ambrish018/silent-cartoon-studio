@@ -10,6 +10,9 @@ os.makedirs("jobs", exist_ok=True)
 
 PROMPT = f"""You write SILENT, language-free cartoon micro-stories.
 Cast: Apple, Banana, Carrot, Mochi (puppy). No words, no text on screen.
+Start IN MEDIAS RES — beat 1 drops the viewer into something already happening.
+No setup beats. No character introductions. No establishing shots.
+Beat 1 must create an immediate question: Why? What happened? What next?
 
 Genre: {GENRE}
 Length: exactly 60 seconds total.
@@ -26,27 +29,29 @@ No trailing commas anywhere.
   "beats": [
     {{
       "start": 0,
-      "end": 6,
+      "end": 5,
       "background": "kitchen",
       "characters": [
-        {{"name": "Apple", "expression": "happy", "pose": "idle", "facing": "right"}}
+        {{"name": "Apple", "expression": "scared", "pose": "jump", "facing": "left"}},
+        {{"name": "Mochi", "expression": "laughing", "pose": "point", "facing": "right"}}
       ],
       "caption_symbol": null,
-      "sfx": "pop",
-      "camera": "static",
-      "note": "Apple stands in kitchen looking happy"
+      "sfx": "boing",
+      "camera": "shake",
+      "note": "Apple mid-leap fleeing something — Mochi is delighted — cause unknown"
     }},
     {{
-      "start": 6,
-      "end": 12,
+      "start": 5,
+      "end": 10,
       "background": "kitchen",
       "characters": [
-        {{"name": "Mochi", "expression": "surprised", "pose": "idle", "facing": "left"}}
+        {{"name": "Banana", "expression": "angry", "pose": "point", "facing": "left"}},
+        {{"name": "Apple", "expression": "scared", "pose": "fall", "facing": "right"}}
       ],
-      "caption_symbol": "❓",
-      "sfx": "boing",
-      "camera": "static",
-      "note": "Mochi appears looking surprised"
+      "caption_symbol": null,
+      "sfx": "crunch",
+      "camera": "push_in",
+      "note": "Banana enters furious — Apple trips — the cause is still unclear"
     }}
   ]
 }}
@@ -59,6 +64,7 @@ Rules:
 - use only these backgrounds: kitchen park classroom night plain
 - use only these sfx: pop boing ding crunch sad_trombone rain whoosh
 - use only these cameras: static push_in shake
+- beat 1 must start mid-action — viewer arrives after something has already begun
 - make it a complete funny or emotional story with 8 to 12 beats"""
 
 def clean_json(text):

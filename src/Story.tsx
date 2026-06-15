@@ -10,7 +10,6 @@ import {
 import { Character, Pose, Facing } from "./characters/Character";
 import { CharName, Expression } from "./characters/art";
 import { Background, Theme } from "./components/Background";
-import { Caption } from "./components/Caption";
 
 export type BeatCharacter = {
   name: CharName;
@@ -91,9 +90,7 @@ const Scene: React.FC<{ beat: Beat }> = ({ beat }) => {
             />
           ))}
         </AbsoluteFill>
-        {beat.caption_symbol ? (
-          <Caption symbol={beat.caption_symbol} />
-        ) : null}
+
       </AbsoluteFill>
     </AbsoluteFill>
   );
