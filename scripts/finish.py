@@ -31,7 +31,7 @@ else:
 # Add each beat's sound effect at the correct timestamp
 for beat in sheet.get("beats", []):
     name = beat.get("sfx")
-    if not name:
+    if not name or name == "null":
         continue
     sfx_path = f"assets/sfx/{name}.mp3" if not os.path.exists(f"assets/sfx/{name}.wav") else f"assets/sfx/{name}.wav"
     if not os.path.exists(sfx_path):
