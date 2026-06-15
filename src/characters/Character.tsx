@@ -53,8 +53,10 @@ export const Character: React.FC<{
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // Resolve emotion preset → expression, pose, motion, idle scaling
-  const preset = emotion ? EMOTIONS[emotion] : null;
+  // Resolve emotion preset → expression, pose, motion, idle scaling.
+  // Guard against an out-of-set emotion string from the beat sheet (would otherwise
+  // be undefined and slip past the truthy check below).
+  const preset = (emotion && EMOTIONS[emotion]) ? EMOTIONS[emotion] : null;
   const activeExpression: Expression = expression ?? preset?.expression ?? "neutral";
   const activePose: Pose = pose ?? preset?.defaultPose ?? "idle";
   const idleMult = preset?.idleMult ?? 1;

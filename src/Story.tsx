@@ -135,12 +135,19 @@ const PropDisplay: React.FC<{ prop: string }> = ({ prop }) => {
   );
 };
 
-// Resolve effective expression/pose from either emotion preset or explicit fields
+// Resolve effective expression/pose from either emotion preset or explicit fields.
+// Guard the EMOTIONS lookup: a beat sheet may carry an out-of-set emotion string
+// (Claude can emit a non-emotion like "surprised"/"neutral") — an unguarded
+// `EMOTIONS[bad].x` throws and kills the whole render.
 function effectiveExpr(c: BeatCharacter): Expression {
-  return c.expression ?? (c.emotion ? EMOTIONS[c.emotion].expression : "neutral");
+  if (c.expression) return c.expression;
+  const p = c.emotion ? EMOTIONS[c.emotion] : undefined;
+  return p ? p.expression : "neutral";
 }
 function effectivePose(c: BeatCharacter): Pose {
-  return c.pose ?? (c.emotion ? EMOTIONS[c.emotion].defaultPose : "idle");
+  if (c.pose) return c.pose;
+  const p = c.emotion ? EMOTIONS[c.emotion] : undefined;
+  return p ? p.defaultPose : "idle";
 }
 
 function layerTransforms(
