@@ -240,6 +240,14 @@ export const BackgroundTrees: React.FC<{ theme: Theme }> = ({ theme }) => (
             <rect width={84} height={54} rx={5} fill="white" stroke="#E8D4B8" strokeWidth={2} />
           </pattern>
         </defs>
+        {/* Upper wall cabinets — fill dead wall space */}
+        <rect x={0}   y={60} width={420} height={340} rx={8} fill="#C89860" stroke="#9A6A3A" strokeWidth={10}/>
+        <line x1={210} y1={62} x2={210} y2={398} stroke="#9A6A3A" strokeWidth={8}/>
+        <rect x={0}   y={60} width={420} height={340} rx={8} fill="none" stroke="#B08040" strokeWidth={4} opacity={0.3}/>
+        <rect x={660} y={60} width={420} height={340} rx={8} fill="#C89860" stroke="#9A6A3A" strokeWidth={10}/>
+        <line x1={870} y1={62} x2={870} y2={398} stroke="#9A6A3A" strokeWidth={8}/>
+        <rect x={660} y={60} width={420} height={340} rx={8} fill="none" stroke="#B08040" strokeWidth={4} opacity={0.3}/>
+        <line x1={0} y1={398} x2={1080} y2={398} stroke="#9A6A3A" strokeWidth={8}/>
         <rect x={0} y={500} width={1080} height={860} fill="url(#tilePat)" />
         <rect x={60} y={480} width={960} height={22} rx={6} fill="#C89860" />
         <ellipse cx={160} cy={462} rx={40} ry={48} fill="#E87040" />

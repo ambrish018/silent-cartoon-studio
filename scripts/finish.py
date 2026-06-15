@@ -14,14 +14,19 @@ music = f"out/{GENRE}_music.wav"
 out   = f"out/{GENRE}_final.mp4"
 os.makedirs("out", exist_ok=True)
 if not os.path.exists(video): raise FileNotFoundError(f"Silent video not found: {video}. Check Step 2 completed successfully.")
+
+# Video length drives the final cut. Music is looped to cover it (the bed may be
+# shorter than the video — e.g. 30s MusicGen under a 40s short), then bounded with -t.
+duration = float(sheet.get("duration_seconds", 40))
+
 inputs   = ["-i", video]
 filt     = []
 mix_lbs  = []
 idx      = 1
 
-# Add music bed
+# Add music bed — looped so it tiles across the full video duration
 if os.path.exists(music):
-    inputs += ["-i", music]
+    inputs += ["-stream_loop", "-1", "-i", music]
     filt.append(f"[{idx}:a]volume=0.42,aresample=48000[music]")
     mix_lbs.append("[music]")
     idx += 1
@@ -59,7 +64,8 @@ if mix_lbs:
 else:
     audio_args = ["-map", "0:v", "-an"]
 
-cmd = ["ffmpeg", "-y"] + inputs + audio_args + ["-c:v", "copy", "-shortest", out]
+# -t bounds output to the video length (the looped music stream is otherwise infinite)
+cmd = ["ffmpeg", "-y"] + inputs + audio_args + ["-c:v", "copy", "-t", f"{duration:.3f}", out]
 print("Running ffmpeg mix...")
 subprocess.run(cmd, check=True)
 print(f"Final video saved to {out}")

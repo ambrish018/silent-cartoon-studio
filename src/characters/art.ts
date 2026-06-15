@@ -121,68 +121,93 @@ export function faceSVG(expr: Expression, cx: number, cy: number): string {
   return eyebrows(expr, cx, cy) + eyes(expr, cx, cy) + mouth(expr, cx, cy);
 }
 
-// Warm drop shadow shared across all characters
-const SHADOW_DEFS =
-  `<defs>` +
-  `<filter id="cs" x="-30%" y="-10%" width="160%" height="150%">` +
-  `<feDropShadow dx="3" dy="9" stdDeviation="8" flood-color="#B06830" flood-opacity="0.18"/>` +
-  `</filter>` +
-  `</defs>`;
+// Shadow + optional directional motion blur — both live in one <defs> block
+function buildDefs(blurX: number, blurY: number): string {
+  const hasMB = blurX > 0.4 || blurY > 0.4;
+  return `<defs>` +
+    `<filter id="cs" x="-30%" y="-15%" width="160%" height="160%">` +
+    `<feDropShadow dx="0" dy="4" stdDeviation="11" flood-color="#B06830" flood-opacity="0.10"/>` +
+    `</filter>` +
+    (hasMB
+      ? `<filter id="mb" x="-60%" y="-60%" width="220%" height="220%">` +
+        `<feGaussianBlur stdDeviation="${blurX.toFixed(1)} ${blurY.toFixed(1)}"/>` +
+        `</filter>`
+      : ``) +
+    `</defs>`;
+}
 
-const BODIES: Record<CharName, { face: [number,number]; cheek: [number,number]; svg: string }> = {
+// Each body is an ordered list of parts. A part may be `flop`: it pivots by the
+// secondary-motion angle (Disney follow-through / overlapping action) around its
+// own anchor, so light appendages (leaves, stems, ears, tails) drag behind the
+// body's main motion and settle late. Parts render in array order → z-order kept.
+type Part = { svg: string; flop?: { pivot: [number, number]; gain: number } };
+
+const BODIES: Record<CharName, { face: [number,number]; cheek: [number,number]; parts: Part[] }> = {
   Apple: {
     face: [110, 120], cheek: [110, 120],
-    svg:
-      // body
-      `<path d="M110 60 C 70 50,40 80,42 130 C 44 185,80 210,110 210 C 140 210,176 185,178 130 C 180 80,150 50,110 60 Z" fill="#FF8C94" stroke="${STROKE}" stroke-width="6"/>`
-    // stem + leaf
-    + `<path d="M110 60 q 4 -22 -6 -30" stroke="#7a4a2b" stroke-width="7" fill="none" stroke-linecap="round"/>`
-    + `<path d="M112 38 q 30 -18 40 4 q -28 14 -40 -4 Z" fill="#6dbe5a" stroke="#3f7a33" stroke-width="3"/>`
-    // warm highlight
-    + `<ellipse cx="78" cy="100" rx="20" ry="36" fill="white" opacity="0.18"/>`
-    + `<circle cx="86" cy="83" r="11" fill="white" opacity="0.24"/>`,
+    parts: [
+      { svg: `<path d="M110 60 C 70 50,40 80,42 130 C 44 185,80 210,110 210 C 140 210,176 185,178 130 C 180 80,150 50,110 60 Z" fill="#FF8C94" stroke="${STROKE}" stroke-width="6"/>` },
+      // stem + leaf — top appendage, drags behind body
+      { flop: { pivot: [108, 60], gain: 1.0 }, svg:
+          `<path d="M110 60 q 4 -22 -6 -30" stroke="#7a4a2b" stroke-width="7" fill="none" stroke-linecap="round"/>`
+        + `<path d="M112 38 q 30 -18 40 4 q -28 14 -40 -4 Z" fill="#6dbe5a" stroke="#3f7a33" stroke-width="3"/>` },
+      { svg:
+          `<ellipse cx="78" cy="100" rx="20" ry="36" fill="white" opacity="0.18"/>`
+        + `<circle cx="86" cy="83" r="11" fill="white" opacity="0.24"/>` },
+    ],
   },
   Banana: {
     face: [112, 120], cheek: [112, 120],
-    svg:
-      // body
-      `<path d="M60 70 C 40 120,70 195,150 200 C 185 202,196 185,188 178 C 130 188,86 150,92 78 C 92 66,70 56,60 70 Z" fill="#FFE166" stroke="${STROKE}" stroke-width="6"/>`
-    + `<circle cx="62" cy="70" r="6" fill="#5a3b1e"/>`
-    // warm highlight
-    + `<ellipse cx="70" cy="110" rx="11" ry="24" fill="white" opacity="0.18" transform="rotate(-22 70 110)"/>`
-    + `<circle cx="74" cy="93" r="7" fill="white" opacity="0.24"/>`,
+    parts: [
+      { svg: `<path d="M60 70 C 40 120,70 195,150 200 C 185 202,196 185,188 178 C 130 188,86 150,92 78 C 92 66,70 56,60 70 Z" fill="#FFE166" stroke="${STROKE}" stroke-width="6"/>` },
+      // stem nub — small floppy tip
+      { flop: { pivot: [78, 74], gain: 0.6 }, svg: `<circle cx="62" cy="70" r="6" fill="#5a3b1e"/>` },
+      { svg:
+          `<ellipse cx="70" cy="110" rx="11" ry="24" fill="white" opacity="0.18" transform="rotate(-22 70 110)"/>`
+        + `<circle cx="74" cy="93" r="7" fill="white" opacity="0.24"/>` },
+    ],
   },
   Carrot: {
     face: [110, 116], cheek: [110, 116],
-    svg:
-      // body
-      `<path d="M70 86 L150 86 L118 226 Q110 240 102 226 Z" fill="#FFAB6E" stroke="${STROKE}" stroke-width="6" stroke-linejoin="round"/>`
-    + [0,1,2,3].map(i => `<line x1="${86+i*16}" y1="120" x2="${88+i*16}" y2="150" stroke="#D07828" stroke-width="3"/>`).join("")
-    // leaves
-    + `<path d="M110 86 q -6 -34 -26 -40 q 6 26 18 40 Z" fill="#5cb85c" stroke="#3f7a33" stroke-width="3"/>`
-    + `<path d="M110 86 q 0 -40 0 -46 q 10 30 8 46 Z" fill="#6ecb6e" stroke="#3f7a33" stroke-width="3"/>`
-    + `<path d="M110 86 q 6 -34 26 -40 q -6 26 -18 40 Z" fill="#5cb85c" stroke="#3f7a33" stroke-width="3"/>`
-    // warm highlight
-    + `<ellipse cx="93" cy="122" rx="13" ry="28" fill="white" opacity="0.18"/>`
-    + `<circle cx="98" cy="106" r="8" fill="white" opacity="0.22"/>`,
+    parts: [
+      { svg: `<path d="M70 86 L150 86 L118 226 Q110 240 102 226 Z" fill="#FFAB6E" stroke="${STROKE}" stroke-width="6" stroke-linejoin="round"/>` },
+      { svg: [0,1,2,3].map(i => `<line x1="${86+i*16}" y1="120" x2="${88+i*16}" y2="150" stroke="#D07828" stroke-width="3"/>`).join("") },
+      // leafy top — drags behind body
+      { flop: { pivot: [110, 86], gain: 0.9 }, svg:
+          `<path d="M110 86 q -6 -34 -26 -40 q 6 26 18 40 Z" fill="#5cb85c" stroke="#3f7a33" stroke-width="3"/>`
+        + `<path d="M110 86 q 0 -40 0 -46 q 10 30 8 46 Z" fill="#6ecb6e" stroke="#3f7a33" stroke-width="3"/>`
+        + `<path d="M110 86 q 6 -34 26 -40 q -6 26 -18 40 Z" fill="#5cb85c" stroke="#3f7a33" stroke-width="3"/>` },
+      { svg:
+          `<ellipse cx="93" cy="122" rx="13" ry="28" fill="white" opacity="0.18"/>`
+        + `<circle cx="98" cy="106" r="8" fill="white" opacity="0.22"/>` },
+    ],
   },
   Mochi: {
-    face: [110, 124], cheek: [110, 130],
-    svg:
-      // ears
-      `<ellipse cx="56" cy="96" rx="22" ry="34" fill="#DEB48E" stroke="${STROKE}" stroke-width="6" transform="rotate(-18 56 96)"/>`
-    + `<ellipse cx="164" cy="96" rx="22" ry="34" fill="#DEB48E" stroke="${STROKE}" stroke-width="6" transform="rotate(18 164 96)"/>`
-    // tail
-    + `<path d="M178 150 q 30 -6 26 -34 q -16 10 -18 26 Z" fill="#DEB48E" stroke="${STROKE}" stroke-width="5"/>`
-    // head
-    + `<circle cx="110" cy="124" r="74" fill="#F5D9B0" stroke="${STROKE}" stroke-width="6"/>`
-    + `<path d="M110 60 a74 74 0 0 1 60 40 a74 74 0 0 1 -60 18 Z" fill="#E8C494" opacity="0.55"/>`
-    // belly + nose
-    + `<ellipse cx="110" cy="150" rx="30" ry="22" fill="#FFF8EE" stroke="${STROKE}" stroke-width="4"/>`
-    + `<ellipse cx="110" cy="140" rx="9" ry="6.5" fill="${STROKE}"/>`
-    // warm highlight
-    + `<ellipse cx="84" cy="98" rx="18" ry="28" fill="white" opacity="0.18"/>`
-    + `<circle cx="90" cy="84" r="10" fill="white" opacity="0.22"/>`,
+    face: [110, 78], cheek: [110, 90],
+    parts: [
+      // ears — floppy, anchored near skull top, swing with head motion
+      { flop: { pivot: [62, 30], gain: 1.2 }, svg: `<ellipse cx="58" cy="48" rx="22" ry="34" fill="#DEB48E" stroke="${STROKE}" stroke-width="6" transform="rotate(-18 58 48)"/>` },
+      { flop: { pivot: [158, 30], gain: 1.2 }, svg: `<ellipse cx="162" cy="48" rx="22" ry="34" fill="#DEB48E" stroke="${STROKE}" stroke-width="6" transform="rotate(18 162 48)"/>` },
+      // tail — most floppy
+      { flop: { pivot: [168, 168], gain: 1.6 }, svg: `<path d="M168 170 q 30 -6 26 -34 q -16 10 -18 26 Z" fill="#DEB48E" stroke="${STROKE}" stroke-width="5"/>` },
+      // body — head bottom (y=134) meets body top (y=134) for seamless connection
+      { svg: `<ellipse cx="110" cy="192" rx="62" ry="58" fill="#F5D9B0" stroke="${STROKE}" stroke-width="6"/>` },
+      // head
+      { svg:
+          `<circle cx="110" cy="78" r="56" fill="#F5D9B0" stroke="${STROKE}" stroke-width="6"/>`
+        + `<path d="M110 22 a56 56 0 0 1 46 30 a56 56 0 0 1 -46 14 Z" fill="#E8C494" opacity="0.55"/>` },
+      // front paws
+      { svg:
+          `<ellipse cx="70" cy="246" rx="25" ry="14" fill="#F5D9B0" stroke="${STROKE}" stroke-width="5"/>`
+        + `<ellipse cx="150" cy="246" rx="25" ry="14" fill="#F5D9B0" stroke="${STROKE}" stroke-width="5"/>` },
+      // belly
+      { svg: `<ellipse cx="110" cy="198" rx="34" ry="26" fill="#FFF8EE" stroke="${STROKE}" stroke-width="4"/>` },
+      // dog nose
+      { svg: `<ellipse cx="110" cy="94" rx="9" ry="6.5" fill="${STROKE}"/>` },
+      { svg:
+          `<ellipse cx="84" cy="56" rx="16" ry="24" fill="white" opacity="0.18"/>`
+        + `<circle cx="90" cy="46" r="8" fill="white" opacity="0.22"/>` },
+    ],
   },
 };
 
@@ -209,12 +234,24 @@ function blinkSVG(name: CharName, frame: number, cx: number, cy: number): string
   return s;
 }
 
-export function characterSVG(name: CharName, expr: Expression, frame = 0): string {
+// `floppy` = secondary-motion angle (deg) from the body's velocity, applied to flop parts.
+export function characterSVG(
+  name: CharName, expr: Expression, frame = 0,
+  blurX = 0, blurY = 0, floppy = 0
+): string {
   const b = BODIES[name];
   const cheekCol = name === "Mochi" ? "#FFC0C8" : "#FFB8C8";
-  return SHADOW_DEFS
-    + `<g filter="url(#cs)">${b.svg}</g>`
+  const hasMB = blurX > 0.4 || blurY > 0.4;
+  const bodyParts = b.parts.map(p =>
+    p.flop
+      ? `<g transform="rotate(${(floppy * p.flop.gain).toFixed(2)} ${p.flop.pivot[0]} ${p.flop.pivot[1]})">${p.svg}</g>`
+      : p.svg
+  ).join("");
+  const inner =
+    `<g filter="url(#cs)">${bodyParts}</g>`
     + cheeks(b.cheek[0], b.cheek[1], cheekCol)
     + faceSVG(expr, b.face[0], b.face[1])
     + blinkSVG(name, frame, b.face[0], b.face[1]);
+  return buildDefs(blurX, blurY)
+    + (hasMB ? `<g filter="url(#mb)">${inner}</g>` : inner);
 }

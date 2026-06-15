@@ -1,0 +1,5 @@
+node_modules/
+out/
+jobs/
+CLAUDE.md
+__pycache__/
