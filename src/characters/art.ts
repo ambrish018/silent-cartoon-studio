@@ -1,11 +1,12 @@
-const STROKE = "#2f2a26";
+const STROKE = "#5C3D2E";  // warm dark brown — softer than near-black
 const SW = 7;
 
+// Pastel body fills — also used for blink eyelids
 const BODY_FILL: Record<string, string> = {
-  Apple:  "#ff5a5f",
-  Banana: "#ffd23f",
-  Carrot: "#ff8a3d",
-  Mochi:  "#f2c896",
+  Apple:  "#FF8C94",
+  Banana: "#FFE166",
+  Carrot: "#FFAB6E",
+  Mochi:  "#F5D9B0",
 };
 
 const BLINK_OFFSET: Record<string, number> = {
@@ -39,10 +40,10 @@ function eyes(expr: Expression, cx: number, cy: number): string {
     }
   if (expr === "love")
     for (const x of [L, R])
-      s += `<path d="M ${x},${ey+10} C ${x-17},${ey-8} ${x-2},${ey-16} ${x},${ey-4} C ${x+2},${ey-16} ${x+17},${ey-8} ${x},${ey+10} Z" fill="#ff4d6d"/>`;
+      s += `<path d="M ${x},${ey+10} C ${x-17},${ey-8} ${x-2},${ey-16} ${x},${ey-4} C ${x+2},${ey-16} ${x+17},${ey-8} ${x},${ey+10} Z" fill="#FF7A9E"/>`;
   if (expr === "crying")
     for (const x of [L, R])
-      s += `<path d="M ${x},${ey+12} q -7,14 0,16 q 7,-3 0,-16 Z" fill="#5bc8ff"/>`;
+      s += `<path d="M ${x},${ey+12} q -7,14 0,16 q 7,-3 0,-16 Z" fill="#A8DCFF"/>`;
   return s;
 }
 
@@ -94,7 +95,7 @@ function mouth(expr: Expression, cx: number, cy: number): string {
       return `<path d="M ${cx-24},${my-3} Q ${cx},${my+20} ${cx+24},${my-3}" stroke="${STROKE}" stroke-width="${SW}" fill="none" stroke-linecap="round"/>`;
     case "laughing":
       return `<path d="M ${cx-26},${my-5} Q ${cx},${my+28} ${cx+26},${my-5} Z" fill="${STROKE}"/>`
-           + `<path d="M ${cx-17},${my+8} Q ${cx},${my+22} ${cx+17},${my+8} Z" fill="#ff7a93"/>`;
+           + `<path d="M ${cx-17},${my+8} Q ${cx},${my+22} ${cx+17},${my+8} Z" fill="#FFB0C0"/>`;
     case "surprised":
       return `<ellipse cx="${cx}" cy="${my+2}" rx="12" ry="14" fill="${STROKE}"/>`;
     case "sad":
@@ -111,7 +112,7 @@ function mouth(expr: Expression, cx: number, cy: number): string {
   }
 }
 
-function cheeks(cx: number, cy: number, col = "#ff9db0"): string {
+function cheeks(cx: number, cy: number, col = "#FFB8C8"): string {
   return `<circle cx="${cx-34}" cy="${cy+10}" r="11" fill="${col}" opacity="0.65"/>`
        + `<circle cx="${cx+34}" cy="${cy+10}" r="11" fill="${col}" opacity="0.65"/>`;
 }
@@ -120,39 +121,68 @@ export function faceSVG(expr: Expression, cx: number, cy: number): string {
   return eyebrows(expr, cx, cy) + eyes(expr, cx, cy) + mouth(expr, cx, cy);
 }
 
+// Warm drop shadow shared across all characters
+const SHADOW_DEFS =
+  `<defs>` +
+  `<filter id="cs" x="-30%" y="-10%" width="160%" height="150%">` +
+  `<feDropShadow dx="3" dy="9" stdDeviation="8" flood-color="#B06830" flood-opacity="0.18"/>` +
+  `</filter>` +
+  `</defs>`;
+
 const BODIES: Record<CharName, { face: [number,number]; cheek: [number,number]; svg: string }> = {
   Apple: {
     face: [110, 120], cheek: [110, 120],
     svg:
-      `<path d="M110 60 C 70 50,40 80,42 130 C 44 185,80 210,110 210 C 140 210,176 185,178 130 C 180 80,150 50,110 60 Z" fill="#ff5a5f" stroke="${STROKE}" stroke-width="6"/>`
+      // body
+      `<path d="M110 60 C 70 50,40 80,42 130 C 44 185,80 210,110 210 C 140 210,176 185,178 130 C 180 80,150 50,110 60 Z" fill="#FF8C94" stroke="${STROKE}" stroke-width="6"/>`
+    // stem + leaf
     + `<path d="M110 60 q 4 -22 -6 -30" stroke="#7a4a2b" stroke-width="7" fill="none" stroke-linecap="round"/>`
-    + `<path d="M112 38 q 30 -18 40 4 q -28 14 -40 -4 Z" fill="#6dbe5a" stroke="#3f7a33" stroke-width="3"/>`,
+    + `<path d="M112 38 q 30 -18 40 4 q -28 14 -40 -4 Z" fill="#6dbe5a" stroke="#3f7a33" stroke-width="3"/>`
+    // warm highlight
+    + `<ellipse cx="78" cy="100" rx="20" ry="36" fill="white" opacity="0.18"/>`
+    + `<circle cx="86" cy="83" r="11" fill="white" opacity="0.24"/>`,
   },
   Banana: {
     face: [112, 120], cheek: [112, 120],
     svg:
-      `<path d="M60 70 C 40 120,70 195,150 200 C 185 202,196 185,188 178 C 130 188,86 150,92 78 C 92 66,70 56,60 70 Z" fill="#ffd23f" stroke="${STROKE}" stroke-width="6"/>`
-    + `<circle cx="62" cy="70" r="6" fill="#5a3b1e"/>`,
+      // body
+      `<path d="M60 70 C 40 120,70 195,150 200 C 185 202,196 185,188 178 C 130 188,86 150,92 78 C 92 66,70 56,60 70 Z" fill="#FFE166" stroke="${STROKE}" stroke-width="6"/>`
+    + `<circle cx="62" cy="70" r="6" fill="#5a3b1e"/>`
+    // warm highlight
+    + `<ellipse cx="70" cy="110" rx="11" ry="24" fill="white" opacity="0.18" transform="rotate(-22 70 110)"/>`
+    + `<circle cx="74" cy="93" r="7" fill="white" opacity="0.24"/>`,
   },
   Carrot: {
     face: [110, 116], cheek: [110, 116],
     svg:
-      `<path d="M70 86 L150 86 L118 226 Q110 240 102 226 Z" fill="#ff8a3d" stroke="${STROKE}" stroke-width="6" stroke-linejoin="round"/>`
-    + [0,1,2,3].map(i => `<line x1="${86+i*16}" y1="120" x2="${88+i*16}" y2="150" stroke="#e0702a" stroke-width="3"/>`).join("")
+      // body
+      `<path d="M70 86 L150 86 L118 226 Q110 240 102 226 Z" fill="#FFAB6E" stroke="${STROKE}" stroke-width="6" stroke-linejoin="round"/>`
+    + [0,1,2,3].map(i => `<line x1="${86+i*16}" y1="120" x2="${88+i*16}" y2="150" stroke="#D07828" stroke-width="3"/>`).join("")
+    // leaves
     + `<path d="M110 86 q -6 -34 -26 -40 q 6 26 18 40 Z" fill="#5cb85c" stroke="#3f7a33" stroke-width="3"/>`
     + `<path d="M110 86 q 0 -40 0 -46 q 10 30 8 46 Z" fill="#6ecb6e" stroke="#3f7a33" stroke-width="3"/>`
-    + `<path d="M110 86 q 6 -34 26 -40 q -6 26 -18 40 Z" fill="#5cb85c" stroke="#3f7a33" stroke-width="3"/>`,
+    + `<path d="M110 86 q 6 -34 26 -40 q -6 26 -18 40 Z" fill="#5cb85c" stroke="#3f7a33" stroke-width="3"/>`
+    // warm highlight
+    + `<ellipse cx="93" cy="122" rx="13" ry="28" fill="white" opacity="0.18"/>`
+    + `<circle cx="98" cy="106" r="8" fill="white" opacity="0.22"/>`,
   },
   Mochi: {
     face: [110, 124], cheek: [110, 130],
     svg:
-      `<ellipse cx="56" cy="96" rx="22" ry="34" fill="#c98a52" stroke="${STROKE}" stroke-width="6" transform="rotate(-18 56 96)"/>`
-    + `<ellipse cx="164" cy="96" rx="22" ry="34" fill="#c98a52" stroke="${STROKE}" stroke-width="6" transform="rotate(18 164 96)"/>`
-    + `<path d="M178 150 q 30 -6 26 -34 q -16 10 -18 26 Z" fill="#c98a52" stroke="${STROKE}" stroke-width="5"/>`
-    + `<circle cx="110" cy="124" r="74" fill="#f2c896" stroke="${STROKE}" stroke-width="6"/>`
-    + `<path d="M110 60 a74 74 0 0 1 60 40 a74 74 0 0 1 -60 18 Z" fill="#e0a96b" opacity="0.6"/>`
-    + `<ellipse cx="110" cy="150" rx="30" ry="22" fill="#fff3e0" stroke="${STROKE}" stroke-width="4"/>`
-    + `<ellipse cx="110" cy="140" rx="9" ry="6.5" fill="${STROKE}"/>`,
+      // ears
+      `<ellipse cx="56" cy="96" rx="22" ry="34" fill="#DEB48E" stroke="${STROKE}" stroke-width="6" transform="rotate(-18 56 96)"/>`
+    + `<ellipse cx="164" cy="96" rx="22" ry="34" fill="#DEB48E" stroke="${STROKE}" stroke-width="6" transform="rotate(18 164 96)"/>`
+    // tail
+    + `<path d="M178 150 q 30 -6 26 -34 q -16 10 -18 26 Z" fill="#DEB48E" stroke="${STROKE}" stroke-width="5"/>`
+    // head
+    + `<circle cx="110" cy="124" r="74" fill="#F5D9B0" stroke="${STROKE}" stroke-width="6"/>`
+    + `<path d="M110 60 a74 74 0 0 1 60 40 a74 74 0 0 1 -60 18 Z" fill="#E8C494" opacity="0.55"/>`
+    // belly + nose
+    + `<ellipse cx="110" cy="150" rx="30" ry="22" fill="#FFF8EE" stroke="${STROKE}" stroke-width="4"/>`
+    + `<ellipse cx="110" cy="140" rx="9" ry="6.5" fill="${STROKE}"/>`
+    // warm highlight
+    + `<ellipse cx="84" cy="98" rx="18" ry="28" fill="white" opacity="0.18"/>`
+    + `<circle cx="90" cy="84" r="10" fill="white" opacity="0.22"/>`,
   },
 };
 
@@ -181,8 +211,10 @@ function blinkSVG(name: CharName, frame: number, cx: number, cy: number): string
 
 export function characterSVG(name: CharName, expr: Expression, frame = 0): string {
   const b = BODIES[name];
-  const cheekCol = name === "Mochi" ? "#ff8aa0" : "#ff9db0";
-  return b.svg + cheeks(b.cheek[0], b.cheek[1], cheekCol)
-       + faceSVG(expr, b.face[0], b.face[1])
-       + blinkSVG(name, frame, b.face[0], b.face[1]);
+  const cheekCol = name === "Mochi" ? "#FFC0C8" : "#FFB8C8";
+  return SHADOW_DEFS
+    + `<g filter="url(#cs)">${b.svg}</g>`
+    + cheeks(b.cheek[0], b.cheek[1], cheekCol)
+    + faceSVG(expr, b.face[0], b.face[1])
+    + blinkSVG(name, frame, b.face[0], b.face[1]);
 }
