@@ -49,10 +49,19 @@ jobs:
       - name: Step 2 - Render animation
         run: |
           mkdir -p out
+          SERVE_URL="${{ secrets.REMOTION_SERVE_URL }}"
+          if [ -z "$SERVE_URL" ]; then
+            echo "ERROR: REMOTION_SERVE_URL secret is empty (re-set it after redeploy)"
+            exit 1
+          fi
+          if [ -z "$GENRE" ]; then
+            echo "ERROR: GENRE env is empty (Pick-genre step did not propagate)"
+            exit 1
+          fi
           GENRE_CAP="$(echo ${GENRE:0:1} | tr '[:lower:]' '[:upper:]')${GENRE:1}"
           BEAT_SHEET=$(cat $(cat jobs/latest.txt))
           npx remotion lambda render \
-            ${{ secrets.REMOTION_SERVE_URL }} \
+            "$SERVE_URL" \
             "$GENRE_CAP" \
             --frames-per-lambda=100 \
             --concurrency-per-lambda=1 \
