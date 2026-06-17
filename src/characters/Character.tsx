@@ -80,35 +80,35 @@ export const Character: React.FC<{
     if (activePose === "jump") {
       if (f < EX) {
         // anticipation: crouch down + squash before launch
-        translateY = idle + baseY + interpolate(f, [0, ANT, EX], [0, 20, 20], { extrapolateRight: "clamp" });
-        squashX = interpolate(f, [0, ANT], [1, 1.18], { extrapolateRight: "clamp" });
-        squashY = interpolate(f, [0, ANT], [1, 0.82], { extrapolateRight: "clamp" });
+        translateY = idle + baseY + interpolate(f, [0, ANT, EX], [0, 20, 20], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+        squashX = interpolate(f, [0, ANT], [1, 1.18], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+        squashY = interpolate(f, [0, ANT], [1, 0.82], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
       } else {
         const j = spring({ frame: ef, fps, config: { damping: 8, mass: 0.6 } });
         translateY = idle + baseY - interpolate(Math.sin(j * Math.PI), [0, 1], [0, 200], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
         // stretch on rise, squash on landing impact
-        squashX = interpolate(ef, [0, fps * 0.15, fps * 0.6, fps * 0.85, fps * 1.3], [0.82, 0.82, 0.88, 1.26, 1.0], { extrapolateRight: "clamp" });
-        squashY = interpolate(ef, [0, fps * 0.15, fps * 0.6, fps * 0.85, fps * 1.3], [1.18, 1.18, 1.10, 0.76, 1.0], { extrapolateRight: "clamp" });
+        squashX = interpolate(ef, [0, fps * 0.15, fps * 0.6, fps * 0.85, fps * 1.3], [0.82, 0.82, 0.88, 1.26, 1.0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+        squashY = interpolate(ef, [0, fps * 0.15, fps * 0.6, fps * 0.85, fps * 1.3], [1.18, 1.18, 1.10, 0.76, 1.0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
       }
     } else if (activePose === "fall") {
       if (f < EX) {
-        rotate = -interpolate(f, [0, ANT, EX], [0, 6, 6], { extrapolateRight: "clamp" });
+        rotate = -interpolate(f, [0, ANT, EX], [0, 6, 6], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
       } else {
-        translateY = idle + baseY + interpolate(ef, [0, fps], [0, 220], { extrapolateRight: "clamp" });
-        rotate = interpolate(ef, [0, fps], [0, 35], { extrapolateRight: "clamp" });
+        translateY = idle + baseY + interpolate(ef, [0, fps], [0, 220], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+        rotate = interpolate(ef, [0, fps], [0, 35], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
         // landing impact: squash flat then settle (follow-through bounce)
         squashX = interpolate(ef, [fps, fps * 1.12, fps * 1.4], [1, 1.32, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
         squashY = interpolate(ef, [fps, fps * 1.12, fps * 1.4], [1, 0.70, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
       }
     } else if (activePose === "wave") {
       if (f < EX) {
-        rotate = -interpolate(f, [0, ANT, EX], [0, 10, 10], { extrapolateRight: "clamp" });
+        rotate = -interpolate(f, [0, ANT, EX], [0, 10, 10], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
       } else {
         rotate = Math.sin(ef / 5) * 6;
       }
     } else if (activePose === "shrug") {
       if (f < EX) {
-        translateY = idle + baseY + interpolate(f, [0, ANT, EX], [0, 10, 10], { extrapolateRight: "clamp" });
+        translateY = idle + baseY + interpolate(f, [0, ANT, EX], [0, 10, 10], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
       } else {
         translateY = idle + baseY - 4;
         rotate = Math.sin(ef / 16) * 3;
@@ -116,7 +116,7 @@ export const Character: React.FC<{
     } else if (activePose === "point") {
       if (f < EX) {
         // anticipation: pull back opposite the point
-        translateX = -interpolate(f, [0, ANT, EX], [0, 22, 22], { extrapolateRight: "clamp" });
+        translateX = -interpolate(f, [0, ANT, EX], [0, 22, 22], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
       } else {
         // spring with overshoot = follow-through; vertical dip = natural arc
         const ps = spring({ frame: ef, fps, config: { damping: 9, mass: 0.9, stiffness: 120 } });
