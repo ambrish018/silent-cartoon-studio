@@ -98,6 +98,9 @@ the video still renders. Set env `MUSIC=off` to skip it.
 
 ## 4. Bulk content generation (no API key)
 
+> Full prompt format, field rules, and a worked sample: **[SCRIPT_PROMPT.md](SCRIPT_PROMPT.md)**.
+
+
 Paste into Claude.ai or ChatGPT, then paste the output at sheet cell **E2** and run
 `Data → Split text to columns → Custom → ~|~`.
 
