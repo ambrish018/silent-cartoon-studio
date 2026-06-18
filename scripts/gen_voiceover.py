@@ -223,6 +223,23 @@ def _ffprobe_seconds(path):
     return float(out.stdout.strip())
 
 
+# EBU R128 loudness target. -14 LUFS matches the comedy pipeline (finish.py) and
+# YouTube's playback normalization, so clips sit at a consistent level across the
+# video and vs other channel uploads. Set LOUDNORM=off to skip.
+LUFS_TARGET = -14
+
+
+def normalize_audio(src, ext):
+    """Single-pass EBU R128 normalize. Returns a new file path (re-encoded)."""
+    dst = src + ".norm." + ext
+    args = ["ffmpeg", "-y", "-i", src,
+            "-af", f"loudnorm=I={LUFS_TARGET}:TP=-1.5:LRA=11", "-ar", "48000"]
+    args += ["-c:a", "libmp3lame", "-b:a", "192k"] if ext == "mp3" else ["-c:a", "pcm_s16le"]
+    args += [dst]
+    subprocess.run(args, check=True, capture_output=True)
+    return dst
+
+
 # R2 mirror — makes props re-renderable forever (fal URLs can expire). Optional:
 # if R2 creds are absent (e.g. local dev) we keep the fal URL.
 R2_VARS = ["R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET_NAME", "R2_ACCOUNT_ID", "R2_PUBLIC_URL"]
@@ -250,23 +267,35 @@ def fetch_measure_mirror(url, scene_id, idx, prefix):
     ext = "wav" if url.lower().split("?")[0].endswith(".wav") else "mp3"
     with tempfile.NamedTemporaryFile(suffix="." + ext, delete=False) as t:
         path = t.name
+    norm = None
     try:
         urllib.request.urlretrieve(url, path)
-        secs = _ffprobe_seconds(path)
+
+        # loudness normalize (unless disabled / fails)
+        upload_path = path
+        if os.environ.get("LOUDNORM", "on").lower() != "off":
+            try:
+                norm = normalize_audio(path, ext)
+                upload_path = norm
+            except Exception as e:
+                print(f"    WARN loudnorm failed, using raw clip: {e}")
+
+        secs = _ffprobe_seconds(upload_path)
         final = url
         if r2_ready():
             key = f"voiceover/{prefix}/{idx:02d}-{scene_id}.{ext}"
             ctype = "audio/wav" if ext == "wav" else "audio/mpeg"
             _r2_client().upload_file(
-                path, os.environ["R2_BUCKET_NAME"], key,
+                upload_path, os.environ["R2_BUCKET_NAME"], key,
                 ExtraArgs={"ContentType": ctype, "ACL": "public-read"},
             )
             final = f'{os.environ["R2_PUBLIC_URL"].rstrip("/")}/{key}'
             print(f"    mirrored -> {final}")
         return final, secs
     finally:
-        if os.path.exists(path):
-            os.remove(path)
+        for p in (path, norm):
+            if p and os.path.exists(p):
+                os.remove(p)
 
 
 def main():
