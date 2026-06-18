@@ -3,18 +3,27 @@ import { AbsoluteFill, Audio, Sequence } from "remotion";
 import { COLORS, accentFor } from "./theme";
 import { MarsProps, sceneTimeline, totalFrames } from "./script";
 import { Scene } from "./components/Scene";
+import { Starfield } from "./components/Starfield";
 import { ProgressBar } from "./components/ProgressBar";
 
 // Data-driven Mars explainer. Topic-agnostic kinetic motion graphics:
-// each scene = abstract orbit motif + kinetic title + narration caption,
-// with remote voiceover audio. Visuals key off scene index, so the same
-// system renders any sheet row (Mars, black holes, the Moon, ...).
+// a continuous starfield/gradient backdrop + per-scene motif + kinetic title +
+// read-along caption, with remote voiceover. Visuals key off scene index, so
+// the same system renders any sheet row (Mars, black holes, the Moon, ...).
 export const MarsVideo: React.FC<MarsProps> = ({ scenes }) => {
   const timeline = sceneTimeline(scenes);
   const total = totalFrames(scenes);
 
   return (
     <AbsoluteFill style={{ backgroundColor: COLORS.bg0 }}>
+      {/* continuous backdrop — never fades, so scene transitions don't flash black */}
+      <AbsoluteFill
+        style={{
+          background: `radial-gradient(120% 80% at 50% 22%, ${COLORS.bg2} 0%, ${COLORS.bg1} 40%, ${COLORS.bg0} 100%)`,
+        }}
+      />
+      <Starfield count={90} />
+
       {timeline.map((scene) => (
         <Sequence
           key={scene.id ?? scene.index}
@@ -29,11 +38,11 @@ export const MarsVideo: React.FC<MarsProps> = ({ scenes }) => {
             title={scene.title}
             narration={scene.narration}
             durationInFrames={Math.max(1, scene.durationInFrames)}
+            isLast={scene.index === timeline.length - 1}
           />
         </Sequence>
       ))}
 
-      {/* overall progress — global frame, outside the per-scene sequences */}
       <ProgressBar totalFrames={total} accent={accentFor(0)} />
     </AbsoluteFill>
   );
