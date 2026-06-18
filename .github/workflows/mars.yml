@@ -46,6 +46,7 @@ jobs:
           python3 - <<'PY'
           import json, os
           p = json.loads(os.environ.get("PAYLOAD") or "{}")
+          p = p.get("job", p)  # sheet nests fields under "job" (dispatch 10-prop limit)
           if not p:  # manual workflow_dispatch -> example job, default meta
               with open("scripts/mars_job.example.json") as f:
                   p = json.load(f)

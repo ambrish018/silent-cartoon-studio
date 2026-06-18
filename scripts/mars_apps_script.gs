@@ -115,7 +115,8 @@ function _dispatch(payload) {
     method: "post",
     contentType: "application/json",
     headers: { Authorization: "token " + pat, Accept: "application/vnd.github+json" },
-    payload: JSON.stringify({ event_type: "mars-render", client_payload: payload }),
+    // Nest under one key: repository_dispatch allows <=10 top-level client_payload props.
+    payload: JSON.stringify({ event_type: "mars-render", client_payload: { job: payload } }),
     muteHttpExceptions: true
   });
   var code = res.getResponseCode();
