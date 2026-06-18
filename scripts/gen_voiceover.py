@@ -113,6 +113,9 @@ VOICE_BY_MODEL = {
 LANG = {
     "english":    {"gemini": "English (US)",       "elevenlabs": "en", "minimax": "English"},
     "hindi":      {"gemini": "Hindi (India)",      "elevenlabs": "hi", "minimax": "Hindi"},
+    # Hinglish (Hindi+English code-mix, usually Latin script): Indian-English
+    # voice reads it most naturally while code-switching Hindi words.
+    "hinglish":   {"gemini": "English (India)",    "elevenlabs": "en", "minimax": "English"},
     "spanish":    {"gemini": "Spanish (Spain)",    "elevenlabs": "es", "minimax": "Spanish"},
     "french":     {"gemini": "French (France)",    "elevenlabs": "fr", "minimax": "French"},
     "german":     {"gemini": "German (Germany)",   "elevenlabs": "de", "minimax": "German"},

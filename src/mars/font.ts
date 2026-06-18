@@ -14,6 +14,8 @@ type Loader = () => { fontFamily: string };
 const LOADERS: Record<string, Loader> = {
   hindi: loadDevanagari,
   marathi: loadDevanagari,
+  // Hinglish may mix Latin + Devanagari; Noto Devanagari covers both.
+  hinglish: loadDevanagari,
   japanese: loadJP,
   arabic: loadArabic,
 };

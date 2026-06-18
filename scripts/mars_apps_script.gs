@@ -26,7 +26,7 @@ var HEADERS = ["date", "language", "tts_model", "voice", "genre", "audience",
 var MAX_PER_RUN = 10;
 
 var DROPDOWNS = {
-  language: ["English", "Hindi", "Spanish", "French", "German", "Japanese", "Portuguese", "Arabic"],
+  language: ["English", "Hindi", "Hinglish", "Spanish", "French", "German", "Japanese", "Portuguese", "Arabic"],
   tts_model: ["gemini", "elevenlabs", "minimax", "kokoro"],
   genre: ["science", "education"],
   audience: ["kids", "teen", "general", "adult"],
