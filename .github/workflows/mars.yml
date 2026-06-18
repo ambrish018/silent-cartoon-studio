@@ -81,6 +81,7 @@ jobs:
           # Export row/date for later steps.
           with open(os.environ["GITHUB_ENV"], "a") as e:
               e.write(f"MARS_ROW={p.get('row','')}\n")
+              e.write(f"MARS_JOB_ID={p.get('job_id','')}\n")
               e.write(f"MARS_DATE={p.get('date','') or 'latest'}\n")
           print("job:", json.dumps(job)[:200])
           print("meta:", json.dumps(meta)[:200])
@@ -153,8 +154,8 @@ jobs:
           MARS_WEBAPP_URL: ${{ secrets.MARS_WEBAPP_URL }}
           MARS_WEBAPP_TOKEN: ${{ secrets.MARS_WEBAPP_TOKEN }}
         run: |
-          if [ -z "$MARS_WEBAPP_URL" ] || [ -z "$MARS_ROW" ]; then
-            echo "No webapp URL or row — skipping writeback"; exit 0
+          if [ -z "$MARS_WEBAPP_URL" ] || { [ -z "$MARS_JOB_ID" ] && [ -z "$MARS_ROW" ]; }; then
+            echo "No webapp URL or row/job_id — skipping writeback"; exit 0
           fi
           if [ "${{ job.status }}" = "success" ] && [ -f out/youtube_url.txt ]; then
             STATUS="published"; URL="$(cat out/youtube_url.txt)"
@@ -164,7 +165,8 @@ jobs:
           python3 -c "
           import json, urllib.request, os
           data = json.dumps({'token': os.environ.get('MARS_WEBAPP_TOKEN',''),
-              'row': os.environ['MARS_ROW'], 'status': '$STATUS', 'url': '$URL'}).encode()
+              'job_id': os.environ.get('MARS_JOB_ID',''),
+              'row': os.environ.get('MARS_ROW',''), 'status': '$STATUS', 'url': '$URL'}).encode()
           req = urllib.request.Request(os.environ['MARS_WEBAPP_URL'], data=data,
               headers={'Content-Type':'application/json'}, method='POST')
           print(urllib.request.urlopen(req).read().decode()[:200])

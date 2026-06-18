@@ -16,10 +16,14 @@
 
 var COL = {
   date: 1, language: 2, tts_model: 3, voice: 4, genre: 5, audience: 6,
-  script: 7, yt_title: 8, yt_description: 9, yt_tags: 10, status: 11, url: 12
+  script: 7, yt_title: 8, yt_description: 9, yt_tags: 10, status: 11, url: 12,
+  job_id: 13
 };
 var HEADERS = ["date", "language", "tts_model", "voice", "genre", "audience",
-  "script", "yt_title", "yt_description", "yt_tags", "status", "url"];
+  "script", "yt_title", "yt_description", "yt_tags", "status", "url", "job_id"];
+
+// Cost guard: max rows the daily trigger dispatches in one run.
+var MAX_PER_RUN = 10;
 
 var DROPDOWNS = {
   language: ["English", "Hindi", "Spanish", "French", "German", "Japanese", "Portuguese", "Arabic"],
@@ -72,8 +76,31 @@ function _rowPayload(sh, row) {
     script: v[COL.script - 1] || "",
     yt_title: v[COL.yt_title - 1] || "",
     yt_description: v[COL.yt_description - 1] || "",
-    yt_tags: v[COL.yt_tags - 1] || ""
+    yt_tags: v[COL.yt_tags - 1] || "",
+    job_id: v[COL.job_id - 1] || ""
   };
+}
+
+// Ensure the row has a stable job_id (survives row reorder/insert between
+// dispatch and writeback). Generates + writes one if missing; returns it.
+function _ensureJobId(sh, row, payload) {
+  if (!payload.job_id) {
+    payload.job_id = Utilities.getUuid();
+    sh.getRange(row, COL.job_id).setValue(payload.job_id);
+  }
+  return payload.job_id;
+}
+
+// Find the row whose job_id matches (writeback). -1 if none.
+function _findRowByJobId(sh, jobId) {
+  if (!jobId) return -1;
+  var last = sh.getLastRow();
+  if (last < 2) return -1;
+  var vals = sh.getRange(2, COL.job_id, last - 1, 1).getValues();
+  for (var i = 0; i < vals.length; i++) {
+    if (String(vals[i][0]) === String(jobId)) return i + 2;
+  }
+  return -1;
 }
 
 function _dispatch(payload) {
@@ -103,6 +130,7 @@ function renderSelectedRow() {
   if (row < 2) { SpreadsheetApp.getUi().alert("Select a data row (not the header)."); return; }
   var payload = _rowPayload(sh, row);
   if (!payload.script) { SpreadsheetApp.getUi().alert("Row has no script."); return; }
+  _ensureJobId(sh, row, payload);
   _dispatch(payload);
   sh.getRange(row, COL.status).setValue("queued");
   SpreadsheetApp.getUi().alert("Dispatched row " + row + ".");
@@ -112,17 +140,23 @@ function renderDueRows() {
   var sh = SpreadsheetApp.getActiveSheet();
   var today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd");
   var last = sh.getLastRow();
-  var n = 0;
+  var dispatched = 0, skipped = 0;
   for (var row = 2; row <= last; row++) {
     var payload = _rowPayload(sh, row);
     var status = String(sh.getRange(row, COL.status).getValue() || "").toLowerCase();
     if (status === "pending" && payload.date === today && payload.script) {
+      if (dispatched >= MAX_PER_RUN) { skipped++; continue; }  // cost guard
+      _ensureJobId(sh, row, payload);
       _dispatch(payload);
       sh.getRange(row, COL.status).setValue("queued");
-      n++;
+      dispatched++;
     }
   }
-  Logger.log("renderDueRows: dispatched " + n + " row(s) for " + today);
+  Logger.log("renderDueRows " + today + ": dispatched " + dispatched +
+    ", skipped " + skipped + " (cap " + MAX_PER_RUN + "/run)");
+  if (skipped > 0) {
+    Logger.log("NOTE: " + skipped + " due row(s) left pending — they run next trigger (raise MAX_PER_RUN to change).");
+  }
 }
 
 /** Health check — opening the Web App URL in a browser (GET) lands here. */
@@ -146,12 +180,16 @@ function doPost(e) {
         .setMimeType(ContentService.MimeType.JSON);
     }
     var sh = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
-    var row = parseInt(body.row, 10);
+    // Prefer the stable job_id; fall back to row number only if no match.
+    var row = _findRowByJobId(sh, body.job_id);
+    if (row < 2) row = parseInt(body.row, 10);
     if (row >= 2) {
       if (body.status) sh.getRange(row, COL.status).setValue(body.status);
       if (body.url) sh.getRange(row, COL.url).setValue(body.url);
+      return ContentService.createTextOutput(JSON.stringify({ ok: true, row: row }))
+        .setMimeType(ContentService.MimeType.JSON);
     }
-    return ContentService.createTextOutput(JSON.stringify({ ok: true }))
+    return ContentService.createTextOutput(JSON.stringify({ ok: false, error: "row not found" }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ ok: false, error: String(err) }))

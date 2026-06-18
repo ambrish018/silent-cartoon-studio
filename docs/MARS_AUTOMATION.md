@@ -25,6 +25,7 @@ reused `scripts/upload_r2.py` + `scripts/publish_youtube.py`. The Mars Remotion 
 | J | `yt_tags` | comma-separated. |
 | K | `status` | `pending` → (queued) → published / error. Only `pending` rows run. |
 | L | `url` | written back automatically. |
+| M | `job_id` | auto. Stable UUID written at dispatch; writeback matches on it (not row number), so reordering/inserting rows can't misdirect the result. Leave blank. |
 
 ---
 
@@ -71,6 +72,14 @@ No `ANTHROPIC_API_KEY` needed. No new AWS/Lambda setup — the existing prod Lam
 (re)deployed automatically on every run, so code changes are always picked up.
 
 ---
+
+## Cost guard
+
+The daily trigger (`renderDueRows`) dispatches at most **`MAX_PER_RUN`** rows per run
+(default `10`, set at the top of `mars_apps_script.gs`). Extra due rows stay `pending` and
+run on the next trigger. Raise/lower the constant to taste. The manual **Render selected row**
+button is not capped. This prevents a bad bulk-fill (e.g. 100 rows dated today) from launching
+100 simultaneous Lambda renders + fal calls.
 
 ## 3. Daily operation
 
