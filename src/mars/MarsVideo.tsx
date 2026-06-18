@@ -10,7 +10,7 @@ import { ProgressBar } from "./components/ProgressBar";
 // a continuous starfield/gradient backdrop + per-scene motif + kinetic title +
 // read-along caption, with remote voiceover. Visuals key off scene index, so
 // the same system renders any sheet row (Mars, black holes, the Moon, ...).
-export const MarsVideo: React.FC<MarsProps> = ({ scenes }) => {
+export const MarsVideo: React.FC<MarsProps> = ({ scenes, musicUrl }) => {
   const timeline = sceneTimeline(scenes);
   const total = totalFrames(scenes);
 
@@ -23,6 +23,9 @@ export const MarsVideo: React.FC<MarsProps> = ({ scenes }) => {
         }}
       />
       <Starfield count={90} />
+
+      {/* low background music bed, looped under the voiceover */}
+      {musicUrl ? <Audio src={musicUrl} volume={0.12} loop /> : null}
 
       {timeline.map((scene) => (
         <Sequence

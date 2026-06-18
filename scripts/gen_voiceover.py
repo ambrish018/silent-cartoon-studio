@@ -261,6 +261,62 @@ def _r2_client():
     )
 
 
+def _mirror_to_r2(src_path, key, ctype):
+    """Upload a local file to R2 → public URL. Caller checks r2_ready() first."""
+    _r2_client().upload_file(
+        src_path, os.environ["R2_BUCKET_NAME"], key,
+        ExtraArgs={"ContentType": ctype, "ACL": "public-read"},
+    )
+    return f'{os.environ["R2_PUBLIC_URL"].rstrip("/")}/{key}'
+
+
+# Background-music prompt by genre — subtle, instrumental, no drums/vocals.
+MUSIC_PROMPT = {
+    "science":   "calm ambient electronic underscore, gentle curiosity, soft synth pads, no drums, no vocals, instrumental",
+    "education": "light optimistic instrumental underscore, soft piano and pads, unobtrusive, no vocals",
+    "comedy":    "playful light instrumental, quirky, gentle, no vocals",
+    "emotional": "warm reflective ambient pads, slow, heartfelt, instrumental, no vocals",
+}
+
+
+def gen_music_bed(genre, total_sec, prefix, fal_key):
+    """Generate a music bed via fal MusicGen, mirror to R2. Returns URL or None.
+    Best-effort: any failure returns None so the video still renders."""
+    prompt = MUSIC_PROMPT.get(genre, MUSIC_PROMPT["science"])
+    dur = max(8, min(int(total_sec) + 1, 30))  # MusicGen is reliable up to ~30s; looped in Remotion
+    try:
+        req = urllib.request.Request(
+            "https://fal.run/fal-ai/musicgen",
+            data=json.dumps({"prompt": prompt, "duration": dur}).encode(),
+            headers={"Authorization": f"Key {fal_key}", "Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req) as r:
+            result = json.loads(r.read())
+        url = ((result.get("audio_url") or {}).get("url")
+               or (result.get("audio") or {}).get("url")
+               or (result.get("audio_file") or {}).get("url")
+               or result.get("url"))
+        if not url:
+            print(f"  WARN music: no URL in response: {json.dumps(result)[:200]}")
+            return None
+        if not r2_ready():
+            return url  # local dev: use fal URL directly
+        ext = "wav" if url.lower().split("?")[0].endswith(".wav") else "mp3"
+        with tempfile.NamedTemporaryFile(suffix="." + ext, delete=False) as t:
+            path = t.name
+        try:
+            urllib.request.urlretrieve(url, path)
+            return _mirror_to_r2(path, f"music/{prefix}.{ext}",
+                                 "audio/wav" if ext == "wav" else "audio/mpeg")
+        finally:
+            if os.path.exists(path):
+                os.remove(path)
+    except Exception as e:
+        print(f"  WARN music generation failed, continuing without bed: {e}")
+        return None
+
+
 def fetch_measure_mirror(url, scene_id, idx, prefix):
     """Download the fal clip once, measure it, and (if R2 is configured) mirror
     it to R2. Returns (audio_url_for_props, seconds)."""
@@ -285,11 +341,7 @@ def fetch_measure_mirror(url, scene_id, idx, prefix):
         if r2_ready():
             key = f"voiceover/{prefix}/{idx:02d}-{scene_id}.{ext}"
             ctype = "audio/wav" if ext == "wav" else "audio/mpeg"
-            _r2_client().upload_file(
-                upload_path, os.environ["R2_BUCKET_NAME"], key,
-                ExtraArgs={"ContentType": ctype, "ACL": "public-read"},
-            )
-            final = f'{os.environ["R2_PUBLIC_URL"].rstrip("/")}/{key}'
+            final = _mirror_to_r2(upload_path, key, ctype)
             print(f"    mirrored -> {final}")
         return final, secs
     finally:
@@ -342,6 +394,16 @@ def main():
         })
 
     props = {"title": job.get("title", "Mars"), "scenes": out_scenes}
+
+    # Optional background music bed (default on; set MUSIC=off to skip).
+    total_sec = sum(s["durationInFrames"] for s in out_scenes) / FPS
+    if os.environ.get("MUSIC", "on").lower() != "off":
+        print("Generating music bed...")
+        music_url = gen_music_bed(genre, total_sec, prefix, fal_key)
+        if music_url:
+            props["musicUrl"] = music_url
+            print(f"  music -> {music_url}")
+
     os.makedirs(os.path.dirname(OUT_PATH) or ".", exist_ok=True)
     with open(OUT_PATH, "w") as f:
         json.dump(props, f, indent=2)

@@ -81,6 +81,13 @@ run on the next trigger. Raise/lower the constant to taste. The manual **Render 
 button is not capped. This prevents a bad bulk-fill (e.g. 100 rows dated today) from launching
 100 simultaneous Lambda renders + fal calls.
 
+## Background music
+
+`gen_voiceover.py` also generates a subtle instrumental bed (fal MusicGen,
+genre-based prompt), mirrors it to R2, and adds `musicUrl` to props; the comp
+plays it looped at low volume under the voice. Best-effort — if MusicGen fails
+the video still renders. Set env `MUSIC=off` to skip it.
+
 ## 3. Daily operation
 
 1. Fill rows (bulk — see §4). Set `date` and `status = pending`.

@@ -29,6 +29,8 @@ export type MarsProps = {
   /** overall video title (YouTube meta) */
   title: string;
   scenes: MarsScene[];
+  /** optional background music bed (fal MusicGen, mirrored to R2) */
+  musicUrl?: string;
 };
 
 // ---- Default authoring content -------------------------------------------
