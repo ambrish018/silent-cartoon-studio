@@ -35,7 +35,7 @@ export const EndCard: React.FC<{ accent: string; delay?: number }> = ({ accent, 
           borderLeft: `26px solid ${COLORS.bg0}`,
         }}
       />
-      <span style={{ fontFamily: FONT.family, fontSize: FONT.h2, fontWeight: FONT.weightBold, color: COLORS.bg0 }}>
+      <span style={{ fontSize: FONT.h2, fontWeight: FONT.weightBold, color: COLORS.bg0 }}>
         Subscribe
       </span>
     </div>

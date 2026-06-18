@@ -2,6 +2,7 @@ import React from "react";
 import { AbsoluteFill, Audio, Sequence } from "remotion";
 import { COLORS, accentFor } from "./theme";
 import { MarsProps, sceneTimeline, totalFrames } from "./script";
+import { loadMarsFont } from "./font";
 import { Scene } from "./components/Scene";
 import { Starfield } from "./components/Starfield";
 import { ProgressBar } from "./components/ProgressBar";
@@ -10,12 +11,14 @@ import { ProgressBar } from "./components/ProgressBar";
 // a continuous starfield/gradient backdrop + per-scene motif + kinetic title +
 // read-along caption, with remote voiceover. Visuals key off scene index, so
 // the same system renders any sheet row (Mars, black holes, the Moon, ...).
-export const MarsVideo: React.FC<MarsProps> = ({ scenes, musicUrl }) => {
+export const MarsVideo: React.FC<MarsProps> = ({ scenes, musicUrl, language }) => {
   const timeline = sceneTimeline(scenes);
   const total = totalFrames(scenes);
+  // Load the script-appropriate font once; children inherit via font-family.
+  const fontFamily = loadMarsFont(language);
 
   return (
-    <AbsoluteFill style={{ backgroundColor: COLORS.bg0 }}>
+    <AbsoluteFill style={{ backgroundColor: COLORS.bg0, fontFamily }}>
       {/* continuous backdrop — never fades, so scene transitions don't flash black */}
       <AbsoluteFill
         style={{

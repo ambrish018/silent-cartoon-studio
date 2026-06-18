@@ -31,6 +31,8 @@ export type MarsProps = {
   scenes: MarsScene[];
   /** optional background music bed (fal MusicGen, mirrored to R2) */
   musicUrl?: string;
+  /** spoken language — selects the matching font (Latin / Devanagari / ...) */
+  language?: string;
 };
 
 // ---- Default authoring content -------------------------------------------
@@ -84,6 +86,7 @@ const DEFAULT_SCENES: AuthorScene[] = [
 
 export const DEFAULT_MARS_PROPS: MarsProps = {
   title: "Mars — a 60-second explainer",
+  language: "English",
   scenes: DEFAULT_SCENES.map((s) => ({
     id: s.id,
     title: s.title,

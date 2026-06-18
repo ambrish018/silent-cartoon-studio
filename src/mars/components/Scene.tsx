@@ -36,7 +36,6 @@ export const Scene: React.FC<{
           style={{
             marginTop: SPACE.lg,
             color: COLORS.inkFaint,
-            fontFamily: FONT.family,
             fontSize: FONT.label,
             fontWeight: FONT.weightMed,
             letterSpacing: 6,

@@ -32,7 +32,6 @@ export const KineticTitle: React.FC<{ text: string; accent: string }> = ({ text,
             key={i}
             style={{
               display: "inline-block",
-              fontFamily: FONT.family,
               fontSize,
               fontWeight: FONT.weightBold,
               color: COLORS.ink,
@@ -92,7 +91,6 @@ export const Caption: React.FC<{ text: string; durationInFrames: number; delay?:
   return (
     <div
       style={{
-        fontFamily: FONT.family,
         fontSize: FONT.body,
         fontWeight: FONT.weightReg,
         textAlign: "center",

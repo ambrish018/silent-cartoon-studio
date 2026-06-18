@@ -393,7 +393,7 @@ def main():
             "audioUrl": audio_url, "durationInFrames": frames,
         })
 
-    props = {"title": job.get("title", "Mars"), "scenes": out_scenes}
+    props = {"title": job.get("title", "Mars"), "language": language, "scenes": out_scenes}
 
     # Optional background music bed (default on; set MUSIC=off to skip).
     total_sec = sum(s["durationInFrames"] for s in out_scenes) / FPS
