@@ -23,7 +23,7 @@ Output (default: out/mars_props.json):
 
 Env: FAL_KEY (required).
 """
-import sys, os, re, json, ssl, subprocess, tempfile, urllib.request
+import sys, os, re, json, ssl, time, subprocess, tempfile, urllib.request
 
 # Must match src/mars/theme.ts FPS.
 FPS = 60
@@ -32,6 +32,20 @@ TAIL_PAD_SEC = 0.6
 
 JOB_PATH = sys.argv[1] if len(sys.argv) > 1 else "jobs/mars_job.json"
 OUT_PATH = sys.argv[2] if len(sys.argv) > 2 else "out/mars_props.json"
+
+
+def retry(label, fn, tries=4, base=2.0):
+    """Call fn(); on exception retry with exponential backoff. Raises the last
+    error if all attempts fail."""
+    for i in range(tries):
+        try:
+            return fn()
+        except Exception as e:
+            if i == tries - 1:
+                raise
+            wait = base * (2 ** i)
+            print(f"    retry {label} ({i + 1}/{tries - 1}) after error: {e}; waiting {wait:.0f}s")
+            time.sleep(wait)
 
 
 def install_ssl():
@@ -168,13 +182,17 @@ def synth(model, text, voice, style, language, audience, fal_key):
         print(f"  WARN: unknown tts_model '{model}', falling back to gemini")
         adapter = ADAPTERS["gemini"]
     endpoint, payload = adapter(text, voice, style, language, audience)
-    req = urllib.request.Request(
-        endpoint, data=json.dumps(payload).encode(),
-        headers={"Authorization": f"Key {fal_key}", "Content-Type": "application/json"},
-        method="POST",
-    )
-    with urllib.request.urlopen(req) as r:
-        result = json.loads(r.read())
+
+    def _post():
+        req = urllib.request.Request(
+            endpoint, data=json.dumps(payload).encode(),
+            headers={"Authorization": f"Key {fal_key}", "Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req) as r:
+            return json.loads(r.read())
+
+    result = retry(f"fal {model}", _post)
     url = (
         (result.get("audio") or {}).get("url")
         or (result.get("audio_url") or {}).get("url")
@@ -285,14 +303,17 @@ def gen_music_bed(genre, total_sec, prefix, fal_key):
     prompt = MUSIC_PROMPT.get(genre, MUSIC_PROMPT["science"])
     dur = max(8, min(int(total_sec) + 1, 30))  # MusicGen is reliable up to ~30s; looped in Remotion
     try:
-        req = urllib.request.Request(
-            "https://fal.run/fal-ai/musicgen",
-            data=json.dumps({"prompt": prompt, "duration": dur}).encode(),
-            headers={"Authorization": f"Key {fal_key}", "Content-Type": "application/json"},
-            method="POST",
-        )
-        with urllib.request.urlopen(req) as r:
-            result = json.loads(r.read())
+        def _post():
+            req = urllib.request.Request(
+                "https://fal.run/fal-ai/musicgen",
+                data=json.dumps({"prompt": prompt, "duration": dur}).encode(),
+                headers={"Authorization": f"Key {fal_key}", "Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req) as r:
+                return json.loads(r.read())
+
+        result = retry("fal musicgen", _post)
         url = ((result.get("audio_url") or {}).get("url")
                or (result.get("audio") or {}).get("url")
                or (result.get("audio_file") or {}).get("url")
@@ -306,7 +327,7 @@ def gen_music_bed(genre, total_sec, prefix, fal_key):
         with tempfile.NamedTemporaryFile(suffix="." + ext, delete=False) as t:
             path = t.name
         try:
-            urllib.request.urlretrieve(url, path)
+            retry("download music", lambda: urllib.request.urlretrieve(url, path))
             return _mirror_to_r2(path, f"music/{prefix}.{ext}",
                                  "audio/wav" if ext == "wav" else "audio/mpeg")
         finally:
@@ -325,7 +346,7 @@ def fetch_measure_mirror(url, scene_id, idx, prefix):
         path = t.name
     norm = None
     try:
-        urllib.request.urlretrieve(url, path)
+        retry("download clip", lambda: urllib.request.urlretrieve(url, path))
 
         # loudness normalize (unless disabled / fails)
         upload_path = path

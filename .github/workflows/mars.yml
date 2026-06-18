@@ -116,18 +116,25 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: us-east-1
         run: |
-          npx remotion lambda render \
-            "$SERVE_URL" \
-            "Mars" \
-            --props="./out/mars_props.json" \
-            --frames-per-lambda=100 \
-            --concurrency-per-lambda=1 \
-            --timeout=360000 \
-            --function-name=remotion-render-4-0-477-mem3008mb-disk2048mb-360sec \
-            2>&1 | cat | tee /tmp/render_output.txt
-          S3_URL=$(sed 's/\x1b\[[0-9;]*m//g' /tmp/render_output.txt | grep -o 'https://s3[^ ]*\.mp4' | head -1)
+          S3_URL=""
+          for attempt in 1 2 3; do
+            echo "=== Lambda render attempt $attempt/3 ==="
+            npx remotion lambda render \
+              "$SERVE_URL" \
+              "Mars" \
+              --props="./out/mars_props.json" \
+              --frames-per-lambda=100 \
+              --concurrency-per-lambda=1 \
+              --timeout=360000 \
+              --function-name=remotion-render-4-0-477-mem3008mb-disk2048mb-360sec \
+              2>&1 | cat | tee /tmp/render_output.txt || true
+            S3_URL=$(sed 's/\x1b\[[0-9;]*m//g' /tmp/render_output.txt | grep -o 'https://s3[^ ]*\.mp4' | head -1)
+            [ -n "$S3_URL" ] && break
+            echo "render attempt $attempt produced no S3 URL; retrying in 15s..."
+            sleep 15
+          done
           echo "S3 URL: [$S3_URL]"
-          if [ -z "$S3_URL" ]; then echo "ERROR: no S3 URL in render output"; cat /tmp/render_output.txt; exit 1; fi
+          if [ -z "$S3_URL" ]; then echo "ERROR: no S3 URL after 3 attempts"; cat /tmp/render_output.txt; exit 1; fi
           python3 -c "
           import urllib.request, sys
           urllib.request.urlretrieve(sys.argv[1].strip(), 'out/mars_final.mp4')
