@@ -214,18 +214,56 @@ def parse_script(script):
     return scenes
 
 
-def audio_seconds(url):
-    suffix = ".wav" if url.lower().endswith(".wav") else ".mp3"
-    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-        path = tmp.name
+def _ffprobe_seconds(path):
+    out = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+         "-of", "default=noprint_wrappers=1:nokey=1", path],
+        check=True, capture_output=True, text=True,
+    )
+    return float(out.stdout.strip())
+
+
+# R2 mirror — makes props re-renderable forever (fal URLs can expire). Optional:
+# if R2 creds are absent (e.g. local dev) we keep the fal URL.
+R2_VARS = ["R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET_NAME", "R2_ACCOUNT_ID", "R2_PUBLIC_URL"]
+
+
+def r2_ready():
+    return all(os.environ.get(v) for v in R2_VARS)
+
+
+def _r2_client():
+    import boto3
+    from botocore.config import Config
+    return boto3.client(
+        "s3",
+        endpoint_url=f"https://{os.environ['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com",
+        aws_access_key_id=os.environ["R2_ACCESS_KEY_ID"],
+        aws_secret_access_key=os.environ["R2_SECRET_ACCESS_KEY"],
+        config=Config(signature_version="s3v4"),
+    )
+
+
+def fetch_measure_mirror(url, scene_id, idx, prefix):
+    """Download the fal clip once, measure it, and (if R2 is configured) mirror
+    it to R2. Returns (audio_url_for_props, seconds)."""
+    ext = "wav" if url.lower().split("?")[0].endswith(".wav") else "mp3"
+    with tempfile.NamedTemporaryFile(suffix="." + ext, delete=False) as t:
+        path = t.name
     try:
         urllib.request.urlretrieve(url, path)
-        out = subprocess.run(
-            ["ffprobe", "-v", "error", "-show_entries", "format=duration",
-             "-of", "default=noprint_wrappers=1:nokey=1", path],
-            check=True, capture_output=True, text=True,
-        )
-        return float(out.stdout.strip())
+        secs = _ffprobe_seconds(path)
+        final = url
+        if r2_ready():
+            key = f"voiceover/{prefix}/{idx:02d}-{scene_id}.{ext}"
+            ctype = "audio/wav" if ext == "wav" else "audio/mpeg"
+            _r2_client().upload_file(
+                path, os.environ["R2_BUCKET_NAME"], key,
+                ExtraArgs={"ContentType": ctype, "ACL": "public-read"},
+            )
+            final = f'{os.environ["R2_PUBLIC_URL"].rstrip("/")}/{key}'
+            print(f"    mirrored -> {final}")
+        return final, secs
     finally:
         if os.path.exists(path):
             os.remove(path)
@@ -256,16 +294,22 @@ def main():
     scenes = parse_script(job["script"])
     print(f"Parsed {len(scenes)} scenes")
 
+    # Unique prefix for R2 audio keys so videos don't collide. Prefer the
+    # workflow's job_id; fall back to a random id.
+    import uuid
+    prefix = os.environ.get("MARS_JOB_ID") or uuid.uuid4().hex[:12]
+    print(f"R2 mirror: {'on' if r2_ready() else 'off (using fal URLs)'}; prefix={prefix}")
+
     out_scenes = []
     for idx, sc in enumerate(scenes):
         print(f"[{idx + 1}/{len(scenes)}] TTS: {sc['narration'][:60]}...")
         url = synth(model, sc["narration"], voice, style, language, audience, fal_key)
-        secs = audio_seconds(url)
+        audio_url, secs = fetch_measure_mirror(url, sc["id"], idx, prefix)
         frames = int(round((secs + TAIL_PAD_SEC) * FPS))
         print(f"    -> {secs:.2f}s (+{TAIL_PAD_SEC}s) = {frames} frames")
         out_scenes.append({
             "id": sc["id"], "title": sc["title"], "narration": sc["narration"],
-            "audioUrl": url, "durationInFrames": frames,
+            "audioUrl": audio_url, "durationInFrames": frames,
         })
 
     props = {"title": job.get("title", "Mars"), "scenes": out_scenes}

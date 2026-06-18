@@ -91,6 +91,12 @@ jobs:
         run: python3 scripts/gen_voiceover.py jobs/mars_job.json out/mars_props.json
         env:
           FAL_KEY: ${{ secrets.FAL_KEY }}
+          # R2 mirror of per-scene audio (durable, re-renderable props)
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_PUBLIC_URL: ${{ secrets.R2_PUBLIC_URL }}
 
       - name: Step 3 - Deploy serve site (includes Mars comp)
         env:
