@@ -31,6 +31,18 @@ export const COLORS = {
   cyan: "#5BD3D6", // data / highlight accent
 } as const;
 
+// Per-scene accent cycle — abstract, topic-agnostic. Scene N uses ACCENTS[N % len].
+export const ACCENTS = [
+  COLORS.ember,
+  COLORS.cyan,
+  COLORS.sand,
+  COLORS.earthBlue,
+  COLORS.red,
+  COLORS.dust,
+] as const;
+
+export const accentFor = (index: number): string => ACCENTS[index % ACCENTS.length];
+
 // ---- Typography -----------------------------------------------------------
 // System sans for Phase 1; a Google font may be wired in a later phase.
 export const FONT = {
