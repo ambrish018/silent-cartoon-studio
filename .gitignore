@@ -3,3 +3,7 @@ out/
 jobs/
 CLAUDE.md
 __pycache__/
+
+# macOS AppleDouble / metadata
+._*
+.DS_Store
