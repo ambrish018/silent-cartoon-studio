@@ -3,7 +3,14 @@ out/
 jobs/
 CLAUDE.md
 __pycache__/
+.env
+.env.local
 
-# macOS AppleDouble / metadata
+# Override a global ~/.gitignore_global "*.ts" rule that would otherwise silently
+# drop TypeScript source (this is how src/characters/emotions.ts got lost before).
+!*.ts
+!src/**/*.ts
+
+# macOS AppleDouble / metadata — kept AFTER the !*.ts negation so ._*.ts stays ignored
 ._*
 .DS_Store

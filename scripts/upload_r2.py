@@ -12,7 +12,9 @@ R2_ACCOUNT = os.environ["R2_ACCOUNT_ID"]
 R2_PUBLIC  = os.environ["R2_PUBLIC_URL"]
 
 video_path = f"out/{GENRE}_final.mp4"
-object_key = f"videos/{GENRE}_latest.mp4"
+# Optional override so each video gets a unique key (e.g. videos/mars_2026-06-25.mp4)
+# instead of overwriting videos/{genre}_latest.mp4. Default preserves old behaviour.
+object_key = os.environ.get("R2_OBJECT_KEY") or f"videos/{GENRE}_latest.mp4"
 
 if not os.path.exists(video_path):
     raise FileNotFoundError(f"Video not found: {video_path}")

@@ -50,7 +50,7 @@ request = youtube.videos().insert(
             "categoryId":  meta.get("category_id", "23"),
         },
         "status": {
-            "privacyStatus":          "public",
+            "privacyStatus":          os.environ.get("YOUTUBE_PRIVACY", "public"),
             "selfDeclaredMadeForKids": False,
         },
     },
@@ -68,4 +68,7 @@ while response is None:
     if status:
         print(f"Uploading: {int(status.progress() * 100)}%")
 
-print(f"Done! Video live at: https://youtube.com/watch?v={response['id']}")
+watch_url = f"https://youtube.com/watch?v={response['id']}"
+with open("out/youtube_url.txt", "w") as f:
+    f.write(watch_url)
+print(f"Done! Video live at: {watch_url}")

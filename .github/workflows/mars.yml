@@ -1,0 +1,171 @@
+name: mars-render
+
+# Triggered by the Google Sheet (via Apps Script -> repository_dispatch),
+# or manually for testing (workflow_dispatch -> uses the example job).
+on:
+  repository_dispatch:
+    types: [mars-render]
+  workflow_dispatch: {}
+
+jobs:
+  render-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Node packages
+        run: npm install && npm install @remotion/lambda@4.0.477
+
+      - name: Install Python packages
+        run: pip install certifi boto3 google-api-python-client google-auth-httplib2 google-auth-oauthlib
+
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      # --- Build job + meta from the sheet payload (or example on manual run) ---
+      - name: Step 1 - Build job + metadata
+        env:
+          PAYLOAD: ${{ toJSON(github.event.client_payload) }}
+        run: |
+          mkdir -p jobs out
+          python3 - <<'PY'
+          import json, os
+          p = json.loads(os.environ.get("PAYLOAD") or "{}")
+          if not p:  # manual workflow_dispatch -> example job, default meta
+              with open("scripts/mars_job.example.json") as f:
+                  p = json.load(f)
+              p.setdefault("row", "")
+              p.setdefault("date", "")
+              p.setdefault("yt_title", p.get("title", "Mars explainer"))
+              p.setdefault("yt_description", "A short science explainer. Subscribe for a new explainer every day!")
+              p.setdefault("yt_tags", "mars,space,science,explainer,shorts")
+
+          job = {
+              "title":     p.get("yt_title") or p.get("title") or "Mars",
+              "script":    p["script"],
+              "genre":     p.get("genre", "science"),
+              "audience":  p.get("audience", "general"),
+              "language":  p.get("language", "English"),
+              "tts_model": p.get("tts_model", "gemini"),
+              "voice":     p.get("voice", ""),
+          }
+          with open("jobs/mars_job.json", "w") as f:
+              json.dump(job, f, indent=2)
+
+          tags = p.get("yt_tags", "")
+          tags = [t.strip() for t in tags.split(",") if t.strip()] if isinstance(tags, str) else tags
+          meta = {
+              "youtube_title":       p.get("yt_title") or p.get("title") or "Mars explainer",
+              "youtube_description": p.get("yt_description", ""),
+              "youtube_tags":        tags,
+              "category_id":         "27",
+          }
+          with open("out/mars_meta.json", "w") as f:
+              json.dump(meta, f, indent=2)
+
+          # Export row/date for later steps.
+          with open(os.environ["GITHUB_ENV"], "a") as e:
+              e.write(f"MARS_ROW={p.get('row','')}\n")
+              e.write(f"MARS_DATE={p.get('date','') or 'latest'}\n")
+          print("job:", json.dumps(job)[:200])
+          print("meta:", json.dumps(meta)[:200])
+          PY
+
+      - name: Step 2 - Generate voiceover + props
+        run: python3 scripts/gen_voiceover.py jobs/mars_job.json out/mars_props.json
+        env:
+          FAL_KEY: ${{ secrets.FAL_KEY }}
+
+      - name: Step 3 - Deploy serve site (includes Mars comp)
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
+        run: |
+          npx remotion lambda sites create src/index.ts --site-name=mars 2>&1 | tee /tmp/site.txt
+          SERVE_URL=$(sed 's/\x1b\[[0-9;]*m//g' /tmp/site.txt | grep -oE 'https://[^ ]*index\.html' | head -1)
+          if [ -z "$SERVE_URL" ]; then echo "ERROR: no serve URL from sites create"; exit 1; fi
+          echo "SERVE_URL=$SERVE_URL" >> $GITHUB_ENV
+          echo "Serve URL: $SERVE_URL"
+
+      - name: Step 4 - Render on Lambda
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
+        run: |
+          npx remotion lambda render \
+            "$SERVE_URL" \
+            "Mars" \
+            --props="./out/mars_props.json" \
+            --frames-per-lambda=100 \
+            --concurrency-per-lambda=1 \
+            --timeout=360000 \
+            --function-name=remotion-render-4-0-477-mem3008mb-disk2048mb-360sec \
+            2>&1 | cat | tee /tmp/render_output.txt
+          S3_URL=$(sed 's/\x1b\[[0-9;]*m//g' /tmp/render_output.txt | grep -o 'https://s3[^ ]*\.mp4' | head -1)
+          echo "S3 URL: [$S3_URL]"
+          if [ -z "$S3_URL" ]; then echo "ERROR: no S3 URL in render output"; cat /tmp/render_output.txt; exit 1; fi
+          python3 -c "
+          import urllib.request, sys
+          urllib.request.urlretrieve(sys.argv[1].strip(), 'out/mars_final.mp4')
+          print('Downloaded out/mars_final.mp4')
+          " "$S3_URL"
+          ls -lh out/mars_final.mp4
+
+      - name: Step 5 - Upload to Cloudflare R2
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_PUBLIC_URL: ${{ secrets.R2_PUBLIC_URL }}
+          R2_OBJECT_KEY: videos/mars_${{ env.MARS_DATE }}.mp4
+        run: python3 scripts/upload_r2.py mars
+
+      - name: Step 6 - Publish to YouTube (unlisted)
+        env:
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          YOUTUBE_PRIVACY: unlisted
+        run: python3 scripts/publish_youtube.py mars
+
+      # --- Write status + URL back to the sheet (always, so errors are recorded) ---
+      - name: Step 7 - Writeback to sheet
+        if: always()
+        env:
+          MARS_WEBAPP_URL: ${{ secrets.MARS_WEBAPP_URL }}
+          MARS_WEBAPP_TOKEN: ${{ secrets.MARS_WEBAPP_TOKEN }}
+        run: |
+          if [ -z "$MARS_WEBAPP_URL" ] || [ -z "$MARS_ROW" ]; then
+            echo "No webapp URL or row — skipping writeback"; exit 0
+          fi
+          if [ "${{ job.status }}" = "success" ] && [ -f out/youtube_url.txt ]; then
+            STATUS="published"; URL="$(cat out/youtube_url.txt)"
+          else
+            STATUS="error"; URL="$([ -f out/public_url.txt ] && cat out/public_url.txt || echo '')"
+          fi
+          python3 -c "
+          import json, urllib.request, os
+          data = json.dumps({'token': os.environ.get('MARS_WEBAPP_TOKEN',''),
+              'row': os.environ['MARS_ROW'], 'status': '$STATUS', 'url': '$URL'}).encode()
+          req = urllib.request.Request(os.environ['MARS_WEBAPP_URL'], data=data,
+              headers={'Content-Type':'application/json'}, method='POST')
+          print(urllib.request.urlopen(req).read().decode()[:200])
+          "
