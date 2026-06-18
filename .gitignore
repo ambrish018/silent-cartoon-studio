@@ -14,3 +14,16 @@ __pycache__/
 # macOS AppleDouble / metadata — kept AFTER the !*.ts negation so ._*.ts stays ignored
 ._*
 .DS_Store
+
+# Generated media (renders, voiceover, frames). Source assets in assets/ are kept.
+*.mp4
+*.mp3
+*.wav
+*.aac
+*.m4a
+*.mov
+*.png
+*.jpg
+*.jpeg
+*.gif
+!assets/**
