@@ -10,6 +10,17 @@ SVG puppet characters (Apple, Banana, Carrot, Mochi) animated with [Remotion](ht
 **Schedule:** Daily at 04:00 UTC (09:30 IST)  
 **Genres:** Comedy · Educational · Emotional (rotating by weekday)
 
+## Mars — explainer pipeline (separate)
+
+A second, sheet-driven explainer pipeline (the `Mars` composition, 1080×1920 @ **60fps**). A Google
+Sheet row → fal.ai voiceover (multi-language incl. Hindi/Hinglish) → Remotion Lambda render → R2 → YouTube
+(unlisted), with status written back. Visuals are deterministic + dynamic across three axes: genre
+palette, per-scene visual (`motif`/`bignumber`/`compare`), and layout (`centered`/`split`/`stat-hero`/`text-lead`).
+
+- Setup + operations: [docs/MARS_AUTOMATION.md](docs/MARS_AUTOMATION.md)
+- Script-generation prompt: [docs/SCRIPT_PROMPT.md](docs/SCRIPT_PROMPT.md)
+- Visual system architecture: [docs/VISUAL_SYSTEM.md](docs/VISUAL_SYSTEM.md)
+
 ## Quick start
 
 ```bash

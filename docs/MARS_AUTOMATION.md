@@ -17,7 +17,7 @@ reused `scripts/upload_r2.py` + `scripts/publish_youtube.py`. The Mars Remotion 
 | B | `language` | dropdown. Blank → English. |
 | C | `tts_model` | dropdown: gemini (default) / elevenlabs / minimax / kokoro. |
 | D | `voice` | optional override. Blank → auto per model+audience. **Must match the chosen model's catalog.** |
-| E | `genre` | dropdown: science / education. |
+| E | `genre` | dropdown: science / maths / arts-and-crafts / language-arts / education. Sets tone, music, and accent palette. |
 | F | `audience` | dropdown: kids / teen / general / adult. |
 | G | `script` | scenes joined by ` \|\| ` on ONE line. Each scene: `[Title] narration`. |
 | H | `yt_title` | ≤70 chars. |
@@ -88,6 +88,18 @@ genre-based prompt), mirrors it to R2, and adds `musicUrl` to props; the comp
 plays it looped at low volume under the voice. Best-effort — if MusicGen fails
 the video still renders. Set env `MUSIC=off` to skip it.
 
+## Dynamic visuals
+
+Each video varies across three independent, deterministic axes (no AI-generated markup):
+- **genre palette** — `genre` picks the accent colors + tone + music.
+- **scene visual (`viz`)** — `motif` (default) / `bignumber` / `compare`, chosen per scene via a
+  `{...}` directive in the script.
+- **layout** — `centered` / `split` / `stat-hero` / `text-lead`, auto-selected per scene (or forced
+  with `layout=` in the directive).
+
+So different scripts/genres look different in both structure and color. Full directive syntax +
+examples: **[SCRIPT_PROMPT.md](SCRIPT_PROMPT.md)**. Architecture: **[VISUAL_SYSTEM.md](VISUAL_SYSTEM.md)**.
+
 ## 3. Daily operation
 
 1. Fill rows (bulk — see §4). Set `date` and `status = pending`.
@@ -112,7 +124,7 @@ in this exact order, no header, no extra text:
 genre ~|~ audience ~|~ script ~|~ yt_title ~|~ yt_description ~|~ yt_tags
 
 Rules:
-- genre: science or education.
+- genre: science, maths, arts-and-crafts, language-arts, or education.
 - audience: kids, teen, general, or adult.
 - script: 5-6 scenes, ~150 words total (~60s). Each scene = [Short Title] 1-2 sentences.
   Join scenes with " || " on a SINGLE line (no real line breaks). Vivid, correct, no emojis.
