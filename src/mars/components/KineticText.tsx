@@ -6,7 +6,11 @@ const EASE = Easing.bezier(0.16, 1, 0.3, 1);
 
 // Title: words rise + fade in, staggered. Font auto-shrinks for long titles so
 // they don't overflow (heuristic on character count — no DOM measуring needed).
-export const KineticTitle: React.FC<{ text: string; accent: string }> = ({ text, accent }) => {
+export const KineticTitle: React.FC<{ text: string; accent: string; align?: "center" | "left" }> = ({
+  text,
+  accent,
+  align = "center",
+}) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const words = text.split(" ");
@@ -19,7 +23,14 @@ export const KineticTitle: React.FC<{ text: string; accent: string }> = ({ text,
   const fontSize = Math.round(FONT.h1 * Math.max(0.5, Math.min(1, Math.min(byTotal, byWord))));
 
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", maxWidth: 920 }}>
+    <div
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        justifyContent: align === "left" ? "flex-start" : "center",
+        maxWidth: 920,
+      }}
+    >
       {words.map((w, i) => {
         const start = i * stagger;
         const p = interpolate(frame, [start, start + 0.5 * fps], [0, 1], {
@@ -65,11 +76,12 @@ export const KineticTitle: React.FC<{ text: string; accent: string }> = ({ text,
 
 // Caption: words brighten progressively across the scene — a timestamp-free
 // approximation of read-along highlighting (even pacing over the scene length).
-export const Caption: React.FC<{ text: string; durationInFrames: number; delay?: number }> = ({
-  text,
-  durationInFrames,
-  delay = 8,
-}) => {
+export const Caption: React.FC<{
+  text: string;
+  durationInFrames: number;
+  delay?: number;
+  align?: "center" | "left";
+}> = ({ text, durationInFrames, delay = 8, align = "center" }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const words = text.split(" ");
@@ -93,7 +105,7 @@ export const Caption: React.FC<{ text: string; durationInFrames: number; delay?:
       style={{
         fontSize: FONT.body,
         fontWeight: FONT.weightReg,
-        textAlign: "center",
+        textAlign: align === "left" ? "left" : "center",
         lineHeight: 1.35,
         maxWidth: 820,
         transform: `translateY(${(1 - block) * 20}px)`,

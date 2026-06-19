@@ -224,6 +224,24 @@ SCENE_RE = re.compile(
 _PAIR_RE = re.compile(r"([^\s=]+)=([^\s=]+)")
 
 
+LAYOUTS = {"centered", "split", "stat-hero", "text-lead"}
+
+
+def parse_directive(spec):
+    """Parse a directive body into (viz_dict_or_None, layout_or_None).
+    Body looks like 'compare Earth=1 Mars=0.53 layout=split' or 'layout=text-lead'."""
+    spec = (spec or "").strip()
+    if not spec:
+        return None, None
+    # pull out an optional layout=... token first
+    layout = None
+    lm = re.search(r"\blayout=([\w-]+)", spec)
+    if lm and lm.group(1) in LAYOUTS:
+        layout = lm.group(1)
+    spec = re.sub(r"\blayout=[\w-]+", "", spec).strip()
+    return parse_viz(spec), layout
+
+
 def parse_viz(spec):
     """Parse a directive body like 'compare Earth=1 Mars=0.53' into a viz dict,
     or None if empty/unrecognized."""
@@ -274,9 +292,11 @@ def parse_script(script):
             "title": title,
             "narration": narration,
         }
-        viz = parse_viz(m.group("viz"))
+        viz, layout = parse_directive(m.group("viz"))
         if viz:
             scene["viz"] = viz
+        if layout:
+            scene["layout"] = layout
         scenes.append(scene)
     if not scenes:
         raise ValueError("Script parsed to zero scenes. Check the DSL format.")
@@ -469,6 +489,8 @@ def main():
         }
         if sc.get("viz"):
             scene_out["viz"] = sc["viz"]
+        if sc.get("layout"):
+            scene_out["layout"] = sc["layout"]
         out_scenes.append(scene_out)
 
     props = {"title": job.get("title", "Mars"), "language": language,

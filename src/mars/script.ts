@@ -11,6 +11,7 @@
 // `durationInFrames` and (optionally) a fal-hosted `audioUrl`.
 
 import { FPS } from "./theme";
+import { LayoutType } from "./layouts";
 
 // Deterministic visual spec per scene. The script DSL / generation prompt
 // picks the `type` + data; the renderer switches on it. Bounded set = safe to
@@ -33,6 +34,8 @@ export type MarsScene = {
   durationInFrames: number;
   /** deterministic visual; absent → motif */
   viz?: SceneViz;
+  /** layout override; absent → auto-selected by index + viz */
+  layout?: LayoutType;
 };
 
 export type MarsProps = {
@@ -49,7 +52,7 @@ export type MarsProps = {
 
 // ---- Default authoring content -------------------------------------------
 // Editable here for local dev / Studio preview. Production overrides via props.
-type AuthorScene = { id: string; title: string; narration: string; durationSec: number; viz?: SceneViz };
+type AuthorScene = { id: string; title: string; narration: string; durationSec: number; viz?: SceneViz; layout?: LayoutType };
 
 const DEFAULT_SCENES: AuthorScene[] = [
   {
@@ -107,6 +110,7 @@ export const DEFAULT_MARS_PROPS: MarsProps = {
     narration: s.narration,
     durationInFrames: Math.round(s.durationSec * FPS),
     viz: s.viz,
+    layout: s.layout,
   })),
 };
 

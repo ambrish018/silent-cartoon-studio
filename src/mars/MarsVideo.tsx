@@ -47,6 +47,7 @@ export const MarsVideo: React.FC<MarsProps> = ({ scenes, musicUrl, language, gen
             isLast={scene.index === timeline.length - 1}
             viz={scene.viz}
             genre={genre}
+            layout={scene.layout}
           />
         </Sequence>
       ))}

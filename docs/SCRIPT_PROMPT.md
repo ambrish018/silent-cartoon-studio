@@ -41,6 +41,10 @@ stripped from the spoken narration (not read aloud). Omit it → default abstrac
 | `{bignum value=VALUE unit=UNIT}` | one big animated stat; `value` numeric counts up. `unit` may have spaces |
 | `{motif}` | the default orbit motif (same as omitting) |
 
+Add an optional `layout=` token to any directive to override the scene composition
+(else it's auto-selected by position + visual): `centered`, `split`, `stat-hero`, `text-lead`.
+E.g. `{compare Earth=1 Mars=0.53 layout=split}` or `{layout=text-lead}`.
+
 Examples (one scene each):
 ```
 [Half of Earth]{compare Earth=1 Mars=0.53} Mars is about half the width of Earth.
