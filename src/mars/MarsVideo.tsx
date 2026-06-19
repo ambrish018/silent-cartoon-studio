@@ -11,7 +11,7 @@ import { ProgressBar } from "./components/ProgressBar";
 // a continuous starfield/gradient backdrop + per-scene motif + kinetic title +
 // read-along caption, with remote voiceover. Visuals key off scene index, so
 // the same system renders any sheet row (Mars, black holes, the Moon, ...).
-export const MarsVideo: React.FC<MarsProps> = ({ scenes, musicUrl, language }) => {
+export const MarsVideo: React.FC<MarsProps> = ({ scenes, musicUrl, language, genre }) => {
   const timeline = sceneTimeline(scenes);
   const total = totalFrames(scenes);
   // Load the script-appropriate font once; children inherit via font-family.
@@ -45,11 +45,13 @@ export const MarsVideo: React.FC<MarsProps> = ({ scenes, musicUrl, language }) =
             narration={scene.narration}
             durationInFrames={Math.max(1, scene.durationInFrames)}
             isLast={scene.index === timeline.length - 1}
+            viz={scene.viz}
+            genre={genre}
           />
         </Sequence>
       ))}
 
-      <ProgressBar totalFrames={total} accent={accentFor(0)} />
+      <ProgressBar totalFrames={total} accent={accentFor(0, genre)} />
     </AbsoluteFill>
   );
 };

@@ -12,6 +12,14 @@
 
 import { FPS } from "./theme";
 
+// Deterministic visual spec per scene. The script DSL / generation prompt
+// picks the `type` + data; the renderer switches on it. Bounded set = safe to
+// render unattended (no LLM-generated markup/code).
+export type SceneViz =
+  | { type: "motif" } // default abstract orbit motif
+  | { type: "bignumber"; value: string; unit?: string } // one big stat
+  | { type: "compare"; a: { label: string; value: number }; b: { label: string; value: number } };
+
 export type MarsScene = {
   /** stable id (optional; index used if absent) */
   id?: string;
@@ -23,6 +31,8 @@ export type MarsScene = {
   audioUrl?: string;
   /** authoritative scene length in frames (derived from audio in production) */
   durationInFrames: number;
+  /** deterministic visual; absent → motif */
+  viz?: SceneViz;
 };
 
 export type MarsProps = {
@@ -33,11 +43,13 @@ export type MarsProps = {
   musicUrl?: string;
   /** spoken language — selects the matching font (Latin / Devanagari / ...) */
   language?: string;
+  /** subject genre — selects the accent palette */
+  genre?: string;
 };
 
 // ---- Default authoring content -------------------------------------------
 // Editable here for local dev / Studio preview. Production overrides via props.
-type AuthorScene = { id: string; title: string; narration: string; durationSec: number };
+type AuthorScene = { id: string; title: string; narration: string; durationSec: number; viz?: SceneViz };
 
 const DEFAULT_SCENES: AuthorScene[] = [
   {
@@ -53,6 +65,7 @@ const DEFAULT_SCENES: AuthorScene[] = [
     narration:
       "Mars is small. About half the width of Earth — closer in size to our Moon than to home.",
     durationSec: 10,
+    viz: { type: "compare", a: { label: "Earth", value: 1 }, b: { label: "Mars", value: 0.53 } },
   },
   {
     id: "day",
@@ -60,6 +73,7 @@ const DEFAULT_SCENES: AuthorScene[] = [
     narration:
       "But a day on Mars feels oddly familiar. It spins once every twenty-four hours and thirty-seven minutes.",
     durationSec: 10,
+    viz: { type: "bignumber", value: "24:37", unit: "hours per day" },
   },
   {
     id: "atmosphere",
@@ -92,6 +106,7 @@ export const DEFAULT_MARS_PROPS: MarsProps = {
     title: s.title,
     narration: s.narration,
     durationInFrames: Math.round(s.durationSec * FPS),
+    viz: s.viz,
   })),
 };
 

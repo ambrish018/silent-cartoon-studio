@@ -31,6 +31,28 @@ These map to sheet columns **E–J**. The other columns you set yourself:
 - Keep numbers spelled where it helps TTS (e.g. "twenty-four" reads better than "24" in some languages).
 - The pipeline measures each scene's real voice length, so don't worry about exact timing.
 
+#### Optional visual directive `{...}`
+After the title, a `{...}` block picks a **deterministic visual** for that scene. It is
+stripped from the spoken narration (not read aloud). Omit it → default abstract motif.
+
+| directive | renders |
+|-----------|---------|
+| `{compare LabelA=NUM LabelB=NUM}` | two proportional discs (e.g. size/stat comparison) |
+| `{bignum value=VALUE unit=UNIT}` | one big animated stat; `value` numeric counts up. `unit` may have spaces |
+| `{motif}` | the default orbit motif (same as omitting) |
+
+Examples (one scene each):
+```
+[Half of Earth]{compare Earth=1 Mars=0.53} Mars is about half the width of Earth.
+[A Familiar Day]{bignum value=24:37 unit=hours per day} A day on Mars is oddly familiar.
+[Pi]{bignum value=3.14159 unit=pi} Pi relates a circle's circumference to its diameter.
+```
+
+### Genres
+`genre` (column E) picks tone + music + the accent palette:
+`science`, `maths`, `arts-and-crafts`, `language-arts`, `education`. Each renders in a
+distinct color palette.
+
 ## Master prompt (copy-paste)
 
 ```
@@ -41,11 +63,14 @@ separator ~|~ in this exact order, no header, no extra text:
 genre ~|~ audience ~|~ script ~|~ yt_title ~|~ yt_description ~|~ yt_tags
 
 Rules:
-- genre: science or education.
+- genre: science, maths, arts-and-crafts, language-arts, or education.
 - audience: kids, teen, general, or adult (choose what fits the topic).
 - script: 5-6 scenes, ~150 words total (~60s narration). Each scene =
   [Short Title] 1-2 sentences. Join scenes with " || " on a SINGLE line
   (no real line breaks). Vivid, factually correct, no emojis.
+  Where a scene states a key number or a two-thing comparison, add a visual
+  directive right after the title: {bignum value=NUM unit=UNIT} or
+  {compare LabelA=NUM LabelB=NUM}. Otherwise omit it.
 - yt_title: <=70 chars, curiosity-driven, at most 1 emoji.
 - yt_description: 2-3 sentences on ONE line, last sentence exactly
   "Subscribe for a new explainer every day!"

@@ -41,7 +41,18 @@ export const ACCENTS = [
   COLORS.dust,
 ] as const;
 
-export const accentFor = (index: number): string => ACCENTS[index % ACCENTS.length];
+// Genre-specific palettes so different subjects read visually distinct.
+export const GENRE_ACCENTS: Record<string, readonly string[]> = {
+  science: [COLORS.ember, COLORS.cyan, COLORS.sand, COLORS.earthBlue],
+  maths: [COLORS.cyan, COLORS.earthBlue, COLORS.ember, COLORS.dust],
+  "arts-and-crafts": [COLORS.ember, COLORS.sand, COLORS.red, COLORS.dust],
+  "language-arts": [COLORS.earthBlue, COLORS.dust, COLORS.cyan, COLORS.sand],
+};
+
+export const accentFor = (index: number, genre?: string): string => {
+  const palette = (genre && GENRE_ACCENTS[genre]) || ACCENTS;
+  return palette[index % palette.length];
+};
 
 // ---- Typography -----------------------------------------------------------
 // System sans for Phase 1; a Google font may be wired in a later phase.
