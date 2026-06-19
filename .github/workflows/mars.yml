@@ -35,7 +35,7 @@ jobs:
         run: pip install certifi boto3 google-api-python-client google-auth-httplib2 google-auth-oauthlib
 
       - name: Install ffmpeg
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
 
       # --- Build job + meta from the sheet payload (or example on manual run) ---
       - name: Step 1 - Build job + metadata
