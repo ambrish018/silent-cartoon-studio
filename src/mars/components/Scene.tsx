@@ -1,12 +1,47 @@
 import React from "react";
 import { AbsoluteFill, useCurrentFrame, interpolate } from "remotion";
 import { COLORS, FONT, SPACE, accentFor } from "../theme";
+import { SceneViz } from "../script";
+import { chooseLayout, LayoutType } from "../layouts";
 import { OrbitMotif } from "./OrbitMotif";
+import { BigNumber } from "./BigNumber";
+import { Compare } from "./Compare";
 import { KineticTitle, Caption } from "./KineticText";
 import { EndCard } from "./EndCard";
 
-// Content only — the gradient + starfield live in MarsVideo as a continuous
-// layer, so the per-scene content fade no longer flashes the background to black.
+// ---- pieces ---------------------------------------------------------------
+const Counter: React.FC<{ index: number; total: number }> = ({ index, total }) => (
+  <div
+    style={{
+      position: "absolute",
+      top: SPACE.xl,
+      left: 0,
+      right: 0,
+      textAlign: "center",
+      color: COLORS.inkFaint,
+      fontSize: FONT.label,
+      fontWeight: FONT.weightMed,
+      letterSpacing: 6,
+    }}
+  >
+    {String(index + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
+  </div>
+);
+
+const Visual: React.FC<{ viz?: SceneViz; accent: string; index: number; scale?: number }> = ({
+  viz,
+  accent,
+  index,
+  scale = 1,
+}) => {
+  let el: React.ReactNode;
+  if (viz?.type === "bignumber") el = <BigNumber value={viz.value} unit={viz.unit} accent={accent} />;
+  else if (viz?.type === "compare") el = <Compare a={viz.a} b={viz.b} accent={accent} />;
+  else el = <OrbitMotif accent={accent} size={520} variant={index % 3} />;
+  return <div style={{ transform: `scale(${scale})` }}>{el}</div>;
+};
+
+// ---- the scene ------------------------------------------------------------
 export const Scene: React.FC<{
   index: number;
   total: number;
@@ -14,55 +49,84 @@ export const Scene: React.FC<{
   narration: string;
   durationInFrames: number;
   isLast?: boolean;
-}> = ({ index, total, title, narration, durationInFrames, isLast }) => {
+  viz?: SceneViz;
+  genre?: string;
+  layout?: LayoutType;
+}> = ({ index, total, title, narration, durationInFrames, isLast, viz, genre, layout }) => {
   const frame = useCurrentFrame();
-  const accent = accentFor(index);
+  const accent = accentFor(index, genre);
+  const lay = chooseLayout(index, viz?.type, layout);
 
   const fadeIn = interpolate(frame, [0, 8], [0, 1], { extrapolateRight: "clamp" });
   const fadeOut = interpolate(frame, [durationInFrames - 10, durationInFrames], [1, 0], { extrapolateLeft: "clamp" });
   const opacity = Math.min(fadeIn, fadeOut);
 
+  const align: "center" | "left" = lay === "centered" ? "center" : "left";
+  const titleEl = title ? <KineticTitle text={title} accent={accent} align={align} /> : null;
+  const captionEl = <Caption text={narration} durationInFrames={durationInFrames} align={align} />;
+  const endEl = isLast ? <EndCard accent={accent} /> : null;
+
   return (
     <AbsoluteFill style={{ opacity }}>
-      <AbsoluteFill
-        style={{
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "flex-start",
-          padding: SPACE.gutter,
-        }}
-      >
-        <div
+      <Counter index={index} total={total} />
+      {lay === "centered" && (
+        <AbsoluteFill
+          style={{ flexDirection: "column", alignItems: "center", justifyContent: "center", gap: SPACE.lg, padding: SPACE.gutter }}
+        >
+          <Visual viz={viz} accent={accent} index={index} />
+          {titleEl}
+          {captionEl}
+          {endEl}
+        </AbsoluteFill>
+      )}
+
+      {lay === "stat-hero" && (
+        <AbsoluteFill
+          style={{ flexDirection: "column", justifyContent: "space-between", alignItems: "flex-start", padding: SPACE.gutter, paddingTop: 280, paddingBottom: SPACE.xl }}
+        >
+          <div style={{ alignSelf: "center" }}>
+            <Visual viz={viz} accent={accent} index={index} scale={1.15} />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: SPACE.md, alignItems: "flex-start" }}>
+            {titleEl}
+            {captionEl}
+            {endEl}
+          </div>
+        </AbsoluteFill>
+      )}
+
+      {lay === "text-lead" && (
+        <AbsoluteFill
+          style={{ flexDirection: "column", alignItems: "flex-start", justifyContent: "flex-start", padding: SPACE.gutter, paddingTop: 240, gap: SPACE.md }}
+        >
+          {titleEl}
+          {captionEl}
+          <div style={{ alignSelf: "center", marginTop: SPACE.lg }}>
+            <Visual viz={viz} accent={accent} index={index} scale={0.8} />
+          </div>
+        </AbsoluteFill>
+      )}
+
+      {lay === "split" && (
+        <AbsoluteFill
           style={{
-            marginTop: SPACE.lg,
-            color: COLORS.inkFaint,
-            fontSize: FONT.label,
-            fontWeight: FONT.weightMed,
-            letterSpacing: 6,
+            flexDirection: index % 2 === 0 ? "row" : "row-reverse",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: SPACE.gutter,
+            gap: SPACE.md,
           }}
         >
-          {String(index + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
-        </div>
-
-        <div style={{ marginTop: SPACE.lg, marginBottom: SPACE.lg }}>
-          <OrbitMotif accent={accent} size={520} variant={index % 3} />
-        </div>
-
-        {title ? <KineticTitle text={title} accent={accent} /> : null}
-      </AbsoluteFill>
-
-      <AbsoluteFill
-        style={{
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "flex-end",
-          padding: SPACE.gutter,
-          paddingBottom: SPACE.xl,
-        }}
-      >
-        <Caption text={narration} durationInFrames={durationInFrames} />
-        {isLast ? <EndCard accent={accent} /> : null}
-      </AbsoluteFill>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: SPACE.md, alignItems: "flex-start" }}>
+            {titleEl}
+            {captionEl}
+            {endEl}
+          </div>
+          <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center" }}>
+            <Visual viz={viz} accent={accent} index={index} scale={0.62} />
+          </div>
+        </AbsoluteFill>
+      )}
     </AbsoluteFill>
   );
 };

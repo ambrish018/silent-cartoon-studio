@@ -28,7 +28,7 @@ var MAX_PER_RUN = 10;
 var DROPDOWNS = {
   language: ["English", "Hindi", "Hinglish", "Spanish", "French", "German", "Japanese", "Portuguese", "Arabic"],
   tts_model: ["gemini", "elevenlabs", "minimax", "kokoro"],
-  genre: ["science", "education"],
+  genre: ["science", "maths", "arts-and-crafts", "language-arts", "education"],
   audience: ["kids", "teen", "general", "adult"],
   status: ["pending", "queued", "published", "error"]
 };

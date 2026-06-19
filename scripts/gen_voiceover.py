@@ -86,10 +86,13 @@ STYLE_BY_AUDIENCE = {
     "adult":   "Speak in a measured, authoritative documentary-narrator tone.",
 }
 STYLE_BY_GENRE = {
-    "science":   " Convey curiosity and a sense of wonder about the subject.",
-    "education": " Emphasize clarity and gentle emphasis on key facts.",
-    "comedy":    " Add a light, wry, slightly mischievous edge.",
-    "emotional": " Add warmth and a reflective, heartfelt quality.",
+    "science":        " Convey curiosity and a sense of wonder about the subject.",
+    "maths":          " Sound precise and encouraging; make the logic feel satisfying.",
+    "arts-and-crafts":" Sound warm, friendly and hands-on, like a creative how-to.",
+    "language-arts":  " Sound articulate and expressive, savoring words and meaning.",
+    "education":      " Emphasize clarity and gentle emphasis on key facts.",
+    "comedy":         " Add a light, wry, slightly mischievous edge.",
+    "emotional":      " Add warmth and a reflective, heartfelt quality.",
 }
 # MiniMax has no free-text style — map audience to its emotion enum.
 MINIMAX_EMOTION = {"kids": "happy", "teen": "happy", "general": "neutral", "adult": "neutral"}
@@ -208,9 +211,68 @@ def synth(model, text, voice, style, language, audience, fal_key):
 
 # ===========================================================================
 # Script DSL parser — one scene per line OR per ' || ' segment.
-# "[Title] narration" or just "narration".
+#   [Title] narration
+#   [Title]{viz...} narration       <- optional deterministic visual directive
+# Visual directives (the {...} is stripped from spoken narration):
+#   {compare Earth=1 Mars=0.53}        -> two-item proportional comparison
+#   {bignum value=24:37 unit=hours per day}  -> one big animated stat
+#   {motif}                            -> default abstract motif (also the default)
 # ===========================================================================
-SCENE_RE = re.compile(r"^\s*(?:\[(?P<title>[^\]]*)\]\s*)?(?P<narration>.+?)\s*$")
+SCENE_RE = re.compile(
+    r"^\s*(?:\[(?P<title>[^\]]*)\]\s*)?(?:\{(?P<viz>[^}]*)\}\s*)?(?P<narration>.+?)\s*$"
+)
+_PAIR_RE = re.compile(r"([^\s=]+)=([^\s=]+)")
+
+
+LAYOUTS = {"centered", "split", "stat-hero", "text-lead"}
+
+
+def parse_directive(spec):
+    """Parse a directive body into (viz_dict_or_None, layout_or_None).
+    Body looks like 'compare Earth=1 Mars=0.53 layout=split' or 'layout=text-lead'."""
+    spec = (spec or "").strip()
+    if not spec:
+        return None, None
+    # pull out an optional layout=... token first
+    layout = None
+    lm = re.search(r"\blayout=([\w-]+)", spec)
+    if lm and lm.group(1) in LAYOUTS:
+        layout = lm.group(1)
+    spec = re.sub(r"\blayout=[\w-]+", "", spec).strip()
+    return parse_viz(spec), layout
+
+
+def parse_viz(spec):
+    """Parse a directive body like 'compare Earth=1 Mars=0.53' into a viz dict,
+    or None if empty/unrecognized."""
+    spec = (spec or "").strip()
+    if not spec:
+        return None
+    parts = spec.split(None, 1)
+    kind = parts[0].lower()
+    rest = parts[1] if len(parts) > 1 else ""
+    if kind in ("compare", "comparison"):
+        pairs = _PAIR_RE.findall(rest)
+        if len(pairs) >= 2:
+            (la, va), (lb, vb) = pairs[0], pairs[1]
+            try:
+                return {"type": "compare",
+                        "a": {"label": la, "value": float(va)},
+                        "b": {"label": lb, "value": float(vb)}}
+            except ValueError:
+                return None
+    if kind in ("bignum", "bignumber"):
+        m = re.search(r"value=(\S+)", rest)
+        if m:
+            value = m.group(1)
+            um = re.search(r"unit=(.+)$", rest)
+            viz = {"type": "bignumber", "value": value}
+            if um:
+                viz["unit"] = um.group(1).strip()
+            return viz
+    if kind == "motif":
+        return {"type": "motif"}
+    return None
 
 
 def parse_script(script):
@@ -225,11 +287,17 @@ def parse_script(script):
         narration = m.group("narration").strip()
         if not narration:
             continue
-        scenes.append({
+        scene = {
             "id": (title.lower().replace(" ", "-") or f"scene-{i}"),
             "title": title,
             "narration": narration,
-        })
+        }
+        viz, layout = parse_directive(m.group("viz"))
+        if viz:
+            scene["viz"] = viz
+        if layout:
+            scene["layout"] = layout
+        scenes.append(scene)
     if not scenes:
         raise ValueError("Script parsed to zero scenes. Check the DSL format.")
     return scenes
@@ -293,10 +361,13 @@ def _mirror_to_r2(src_path, key, ctype):
 
 # Background-music prompt by genre — subtle, instrumental, no drums/vocals.
 MUSIC_PROMPT = {
-    "science":   "calm ambient electronic underscore, gentle curiosity, soft synth pads, no drums, no vocals, instrumental",
-    "education": "light optimistic instrumental underscore, soft piano and pads, unobtrusive, no vocals",
-    "comedy":    "playful light instrumental, quirky, gentle, no vocals",
-    "emotional": "warm reflective ambient pads, slow, heartfelt, instrumental, no vocals",
+    "science":        "calm ambient electronic underscore, gentle curiosity, soft synth pads, no drums, no vocals, instrumental",
+    "maths":          "clean minimal instrumental, light marimba and soft synth, focused, no vocals",
+    "arts-and-crafts":"warm acoustic instrumental, ukulele and soft percussion, cheerful, no vocals",
+    "language-arts":  "gentle thoughtful piano instrumental, light strings, literary mood, no vocals",
+    "education":      "light optimistic instrumental underscore, soft piano and pads, unobtrusive, no vocals",
+    "comedy":         "playful light instrumental, quirky, gentle, no vocals",
+    "emotional":      "warm reflective ambient pads, slow, heartfelt, instrumental, no vocals",
 }
 
 
@@ -412,12 +483,18 @@ def main():
         audio_url, secs = fetch_measure_mirror(url, sc["id"], idx, prefix)
         frames = int(round((secs + TAIL_PAD_SEC) * FPS))
         print(f"    -> {secs:.2f}s (+{TAIL_PAD_SEC}s) = {frames} frames")
-        out_scenes.append({
+        scene_out = {
             "id": sc["id"], "title": sc["title"], "narration": sc["narration"],
             "audioUrl": audio_url, "durationInFrames": frames,
-        })
+        }
+        if sc.get("viz"):
+            scene_out["viz"] = sc["viz"]
+        if sc.get("layout"):
+            scene_out["layout"] = sc["layout"]
+        out_scenes.append(scene_out)
 
-    props = {"title": job.get("title", "Mars"), "language": language, "scenes": out_scenes}
+    props = {"title": job.get("title", "Mars"), "language": language,
+             "genre": genre, "scenes": out_scenes}
 
     # Optional background music bed (default on; set MUSIC=off to skip).
     total_sec = sum(s["durationInFrames"] for s in out_scenes) / FPS

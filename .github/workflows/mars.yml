@@ -34,8 +34,13 @@ jobs:
       - name: Install Python packages
         run: pip install certifi boto3 google-api-python-client google-auth-httplib2 google-auth-oauthlib
 
-      - name: Install ffmpeg
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+      - name: Ensure ffmpeg
+        run: |
+          if command -v ffmpeg >/dev/null && command -v ffprobe >/dev/null; then
+            echo "ffmpeg already present: $(ffmpeg -version | head -1)"
+          else
+            sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+          fi
 
       # --- Build job + meta from the sheet payload (or example on manual run) ---
       - name: Step 1 - Build job + metadata
