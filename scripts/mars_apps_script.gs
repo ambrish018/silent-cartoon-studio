@@ -181,6 +181,23 @@ function doPost(e) {
         .setMimeType(ContentService.MimeType.JSON);
     }
     var sh = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+
+    // Append action — the daily Claude routine posts new rows here.
+    // body.rows = array of rows; each row = array of A..K values
+    // [date, language, tts_model, voice, genre, audience, script, yt_title,
+    //  yt_description, yt_tags, status]. Extra cols (url/job_id) left blank.
+    if (body.action === "append" && Array.isArray(body.rows)) {
+      var n = 0;
+      body.rows.forEach(function (r) {
+        if (Array.isArray(r) && r.length) {
+          sh.appendRow(r.slice(0, COL.status)); // A..K only
+          n++;
+        }
+      });
+      return ContentService.createTextOutput(JSON.stringify({ ok: true, appended: n }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
     // Prefer the stable job_id; fall back to row number only if no match.
     var row = _findRowByJobId(sh, body.job_id);
     if (row < 2) row = parseInt(body.row, 10);
