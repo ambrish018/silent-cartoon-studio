@@ -417,6 +417,56 @@ def gen_music_bed(genre, total_sec, prefix, fal_key):
         return None
 
 
+# Realistic background image per scene (route B). fal flux-schnell (cheap/fast),
+# mirrored to R2. Best-effort: any failure returns None (scene falls back to its
+# abstract visual). Set IMAGES=off to skip entirely (cost control).
+IMG_STYLE = ("cinematic photograph, photorealistic, highly detailed, dramatic soft lighting, "
+             "shallow depth of field, vertical composition, no text, no words, no watermark")
+
+
+def image_prompt(scene):
+    title = (scene.get("title") or "").strip()
+    first = (scene.get("narration") or "").split(". ")[0].strip()
+    subj = f"{title}: {first}" if title else first
+    return f"{subj}. {IMG_STYLE}"
+
+
+def gen_scene_image(scene, idx, prefix, fal_key):
+    try:
+        prompt = image_prompt(scene)
+
+        def _post():
+            req = urllib.request.Request(
+                "https://fal.run/fal-ai/flux/schnell",
+                data=json.dumps({"prompt": prompt, "image_size": "portrait_16_9",
+                                 "num_images": 1, "num_inference_steps": 4}).encode(),
+                headers={"Authorization": f"Key {fal_key}", "Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req) as r:
+                return json.loads(r.read())
+
+        result = retry("flux image", _post)
+        imgs = result.get("images") or []
+        url = imgs[0].get("url") if imgs else None
+        if not url:
+            print(f"    WARN image: no URL: {json.dumps(result)[:200]}")
+            return None
+        if not r2_ready():
+            return url
+        with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as t:
+            path = t.name
+        try:
+            retry("download image", lambda: urllib.request.urlretrieve(url, path))
+            return _mirror_to_r2(path, f"images/{prefix}/{idx:02d}-{scene.get('id', idx)}.jpg", "image/jpeg")
+        finally:
+            if os.path.exists(path):
+                os.remove(path)
+    except Exception as e:
+        print(f"    WARN image generation failed: {e}")
+        return None
+
+
 def fetch_measure_mirror(url, scene_id, idx, prefix):
     """Download the fal clip once, measure it, and (if R2 is configured) mirror
     it to R2. Returns (audio_url_for_props, seconds)."""
@@ -496,6 +546,11 @@ def main():
             scene_out["viz"] = sc["viz"]
         if sc.get("layout"):
             scene_out["layout"] = sc["layout"]
+        if os.environ.get("IMAGES", "on").lower() != "off":
+            img = gen_scene_image(sc, idx, prefix, fal_key)
+            if img:
+                scene_out["imageUrl"] = img
+                print(f"    image -> {img}")
         out_scenes.append(scene_out)
 
     props = {"title": job.get("title", "Mars"), "language": language,

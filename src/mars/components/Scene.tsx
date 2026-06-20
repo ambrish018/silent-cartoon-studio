@@ -5,6 +5,7 @@ import { SceneViz } from "../script";
 import { chooseLayout, LayoutType } from "../layouts";
 import { OrbitMotif } from "./OrbitMotif";
 import { IconHero } from "./IconHero";
+import { SceneBackground } from "./SceneBackground";
 import { BigNumber } from "./BigNumber";
 import { Compare } from "./Compare";
 import { KineticTitle, Caption } from "./KineticText";
@@ -54,7 +55,8 @@ export const Scene: React.FC<{
   viz?: SceneViz;
   genre?: string;
   layout?: LayoutType;
-}> = ({ index, total, title, narration, durationInFrames, isLast, viz, genre, layout }) => {
+  imageUrl?: string;
+}> = ({ index, total, title, narration, durationInFrames, isLast, viz, genre, layout, imageUrl }) => {
   const frame = useCurrentFrame();
   const accent = accentFor(index, genre);
   const lay = chooseLayout(index, viz?.type, layout);
@@ -67,6 +69,38 @@ export const Scene: React.FC<{
   const titleEl = title ? <KineticTitle text={title} accent={accent} align={align} /> : null;
   const captionEl = <Caption text={narration} durationInFrames={durationInFrames} align={align} />;
   const endEl = isLast ? <EndCard accent={accent} /> : null;
+
+  // Image-hero: AI image is the visual; title + caption sit in a bottom band over
+  // a dark scrim, with bignum/compare overlaid (icon/motif suppressed).
+  if (imageUrl) {
+    const overlay =
+      viz?.type === "bignumber" || viz?.type === "compare" ? (
+        <div style={{ alignSelf: "center", marginBottom: SPACE.lg, transform: "scale(0.9)" }}>
+          <Visual viz={viz} accent={accent} index={index} />
+        </div>
+      ) : null;
+    return (
+      <AbsoluteFill style={{ opacity }}>
+        <SceneBackground src={imageUrl} durationInFrames={durationInFrames} index={index} />
+        <Counter index={index} total={total} />
+        <AbsoluteFill
+          style={{
+            flexDirection: "column",
+            alignItems: "flex-start",
+            justifyContent: "flex-end",
+            padding: SPACE.gutter,
+            paddingBottom: SPACE.xl,
+            gap: SPACE.md,
+          }}
+        >
+          {overlay}
+          {title ? <KineticTitle text={title} accent={accent} align="left" /> : null}
+          <Caption text={narration} durationInFrames={durationInFrames} align="left" />
+          {endEl}
+        </AbsoluteFill>
+      </AbsoluteFill>
+    );
+  }
 
   return (
     <AbsoluteFill style={{ opacity }}>
