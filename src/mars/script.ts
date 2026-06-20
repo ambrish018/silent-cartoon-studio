@@ -33,6 +33,8 @@ export type MarsScene = {
   audioUrl?: string;
   /** authoritative scene length in frames (derived from audio in production) */
   durationInFrames: number;
+  /** AI-generated background image (fal flux → R2). When present it's the hero. */
+  imageUrl?: string;
   /** deterministic visual; absent → motif */
   viz?: SceneViz;
   /** layout override; absent → auto-selected by index + viz */

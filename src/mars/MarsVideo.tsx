@@ -48,6 +48,7 @@ export const MarsVideo: React.FC<MarsProps> = ({ scenes, musicUrl, language, gen
             viz={scene.viz}
             genre={genre}
             layout={scene.layout}
+            imageUrl={scene.imageUrl}
           />
         </Sequence>
       ))}
