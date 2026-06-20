@@ -4,6 +4,7 @@ import { COLORS, FONT, SPACE, accentFor } from "../theme";
 import { SceneViz } from "../script";
 import { chooseLayout, LayoutType } from "../layouts";
 import { OrbitMotif } from "./OrbitMotif";
+import { IconHero } from "./IconHero";
 import { BigNumber } from "./BigNumber";
 import { Compare } from "./Compare";
 import { KineticTitle, Caption } from "./KineticText";
@@ -37,6 +38,7 @@ const Visual: React.FC<{ viz?: SceneViz; accent: string; index: number; scale?: 
   let el: React.ReactNode;
   if (viz?.type === "bignumber") el = <BigNumber value={viz.value} unit={viz.unit} accent={accent} />;
   else if (viz?.type === "compare") el = <Compare a={viz.a} b={viz.b} accent={accent} />;
+  else if (viz?.type === "icon") el = <IconHero name={viz.name} accent={accent} index={index} />;
   else el = <OrbitMotif accent={accent} size={520} variant={index % 3} />;
   return <div style={{ transform: `scale(${scale})` }}>{el}</div>;
 };
