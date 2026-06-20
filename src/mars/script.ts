@@ -18,6 +18,7 @@ import { LayoutType } from "./layouts";
 // render unattended (no LLM-generated markup/code).
 export type SceneViz =
   | { type: "motif" } // default abstract orbit motif
+  | { type: "icon"; name: string } // topic icon (lucide), see icons.tsx
   | { type: "bignumber"; value: string; unit?: string } // one big stat
   | { type: "compare"; a: { label: string; value: number }; b: { label: string; value: number } };
 
@@ -61,6 +62,7 @@ const DEFAULT_SCENES: AuthorScene[] = [
     narration:
       "This is Mars. The fourth planet from the Sun, and the most explored world beyond our own.",
     durationSec: 9,
+    viz: { type: "icon", name: "orbit" },
   },
   {
     id: "size",
@@ -84,6 +86,7 @@ const DEFAULT_SCENES: AuthorScene[] = [
     narration:
       "Its atmosphere is wisp-thin — almost all carbon dioxide — yet thick enough for dust storms that swallow the entire planet.",
     durationSec: 11,
+    viz: { type: "icon", name: "wind" },
   },
   {
     id: "red",
@@ -91,6 +94,7 @@ const DEFAULT_SCENES: AuthorScene[] = [
     narration:
       "And the color? Iron in the soil reacted with oxygen long ago. Mars is, quite literally, rusting.",
     durationSec: 10,
+    viz: { type: "icon", name: "flame" },
   },
   {
     id: "exploration",

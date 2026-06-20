@@ -270,6 +270,11 @@ def parse_viz(spec):
             if um:
                 viz["unit"] = um.group(1).strip()
             return viz
+    if kind == "icon":
+        m = re.search(r"name=(\S+)", rest)
+        name = m.group(1) if m else (rest.split()[0] if rest.split() else "")
+        if name:
+            return {"type": "icon", "name": name}
     if kind == "motif":
         return {"type": "motif"}
     return None
